@@ -1,0 +1,2 @@
+/usr/bin/ar cr libgpm_crypto.a  CMakeFiles/gpm_crypto.dir/blowfish.cpp.o CMakeFiles/gpm_crypto.dir/crypto.cpp.o CMakeFiles/gpm_crypto.dir/dh.cpp.o
+/usr/bin/ranlib libgpm_crypto.a

@@ -1,0 +1,6 @@
+[submodule "libs/boost/reflect"]
+	path = libs/boost/reflect
+	url = git@github.com:bytemaster/boost_reflect.git
+[submodule "libs/boost/rpc"]
+	path = libs/boost/rpc
+	url = git@github.com:bytemaster/Boost.RPC.git
