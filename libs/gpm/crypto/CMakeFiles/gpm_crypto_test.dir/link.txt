@@ -1,1 +1,0 @@
-/opt/local/bin/c++    -Wl,-search_paths_first -headerpad_max_install_names  CMakeFiles/gpm_crypto_test.dir/crypto_test.cpp.o  -o gpm_crypto_test  -L/usr/local/BerkeleyDB.5.1/lib -L/usr/local/lib libgpm_crypto.a -lcrypto /usr/local/lib/libboost_system.a /usr/local/lib/libboost_thread.a 
