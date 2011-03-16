@@ -1,3 +1,4 @@
+ADD_SUBDIRECTORY( time )
 ADD_SUBDIRECTORY( crypto )
 ADD_SUBDIRECTORY( bdb )
 ADD_SUBDIRECTORY( block_chain )
