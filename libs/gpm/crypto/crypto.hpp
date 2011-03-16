@@ -35,15 +35,15 @@ namespace gpm {
         public_key()                       { memset( key, 0, sizeof(key) );      }
         public_key( const public_key& pk ) { memcpy( key, pk.key, sizeof(key) ); }
 
-        bool verify( const boost::rpc::sha1_hashcode& digest, const signature<KeySize>& sig )
+        bool verify( const boost::rpc::sha1_hashcode& digest, const signature<KeySize>& sig )const
         {
             return verify_data( key, sizeof(key), PublicExponent, digest, sig.data );
         }
-        bool encrypt( const std::vector<char>& in, std::vector<char>& out )
+        bool encrypt( const std::vector<char>& in, std::vector<char>& out )const
         {
             return public_encrypt( key, KeySize, PublicExponent, in, out );
         }
-        bool decrypt( const std::vector<char>& in, std::vector<char>& out )
+        bool decrypt( const std::vector<char>& in, std::vector<char>& out )const
         {
             return public_decrypt( key, KeySize, PublicExponent, in, out );
         }
@@ -70,6 +70,22 @@ namespace gpm {
            return memcmp( key, pk.key, sizeof(key) ) < 0;
         }
 
+        /**
+         *  Public keys are stored as a single ANET_RSA_KEY_BYTES byte number
+         */
+        template<typename T,uint32_t KS, uint32_t PE>
+        friend boost::rpc::datastream<T>& operator<<( boost::rpc::datastream<T>& ds, const gpm::public_key<KS,PE>& pk )
+        {
+            ds.write(pk.key, KS/8 );
+            return ds;
+        }
+        template<typename T,uint32_t KS, uint32_t PE>
+        friend boost::rpc::datastream<T>& operator>>( boost::rpc::datastream<T>& ds, gpm::public_key<KS,PE>& pk )
+        {
+            ds.read( pk.key, KS/8 );
+            return ds;
+        }
+
         private:
             template<uint32_t KS, uint32_t PE>
             friend void generate_keys( public_key<KS,PE>& pub, private_key<KS,PE>& priv );
@@ -81,15 +97,15 @@ namespace gpm {
     template<uint32_t KeySize, uint32_t PublicExponent>
     struct private_key
     {
-        bool encrypt( const std::vector<char>& in, std::vector<char>& out )
+        bool encrypt( const std::vector<char>& in, std::vector<char>& out )const
         {
             return private_encrypt( key, KeySize, PublicExponent, in, out );
         }
-        bool decrypt( const std::vector<char>& in, std::vector<char>& out )
+        bool decrypt( const std::vector<char>& in, std::vector<char>& out )const
         {
             return private_decrypt( key, KeySize, PublicExponent, in, out );
         }
-        bool sign( const boost::rpc::sha1_hashcode& digest, signature<KeySize>& sig )
+        bool sign( const boost::rpc::sha1_hashcode& digest, signature<KeySize>& sig )const
         {
             return sign_data( key, KeySize, PublicExponent, digest, sig.data );
         }
@@ -112,25 +128,13 @@ namespace gpm {
         return os;
     }
 
-    typedef public_key<> public_key_t;
+    typedef public_key<>  public_key_t;
     typedef private_key<> private_key_t;
+    typedef signature<>   signature_t;
+
 } // namespace gpm
 
-/**
- *  Public keys are stored as a single ANET_RSA_KEY_BYTES byte number
- */
-template<typename T,uint32_t KS, uint32_t PE>
-boost::rpc::datastream<T>& operator<<( boost::rpc::datastream<T>& ds, const gpm::public_key<KS,PE>& pk )
-{
-    ds.write(pk.key, KS/8 );
-    return ds;
-}
-template<typename T,uint32_t KS, uint32_t PE>
-boost::rpc::datastream<T>& operator>>( boost::rpc::datastream<T>& ds, gpm::public_key<KS,PE>& pk )
-{
-    ds.read( pk.key, KS/8 );
-    return ds;
-}
+
 template<typename T,uint32_t KS>
 boost::rpc::datastream<T>& operator<<( boost::rpc::datastream<T>& ds, const gpm::signature<KS>& sig )
 {
@@ -154,7 +158,7 @@ boost::rpc::datastream<T>& operator>>( boost::rpc::datastream<T>& ds, gpm::priva
     return ds >> pk.key;
 }
 
-BOOST_REFLECT_TYPEINFO( gpm::public_key_t )
-BOOST_REFLECT_TYPEINFO( gpm::private_key_t )
+//BOOST_REFLECT_TYPEINFO( gpm::public_key_t )
+//BOOST_REFLECT_TYPEINFO( gpm::private_key_t )
 
 #endif
