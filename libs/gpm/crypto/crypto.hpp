@@ -55,11 +55,11 @@ namespace gpm {
         }
         bool operator == ( const public_key& pk )const
         {
-            return 0 == memcpy( key, pk.key, sizeof(key) );
+            return 0 == memcmp( key, pk.key, sizeof(key) );
         }
         bool operator != ( const public_key& pk )const
         {
-            return 0 != memcpy( key, pk.key, sizeof(key) );
+            return 0 != memcmp( key, pk.key, sizeof(key) );
         }
         bool operator > ( const public_key& pk )const
         {
