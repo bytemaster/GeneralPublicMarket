@@ -28,16 +28,9 @@ libs/gpm/block_chain/.transaction.hpp.swp
 libs/gpm/block_chain/CMakeFiles/
 libs/gpm/block_chain/CMakeLists.txt
 libs/gpm/block_chain/Makefile
-libs/gpm/block_chain/block.cpp
-libs/gpm/block_chain/block.hpp
-libs/gpm/block_chain/block_chain.hpp
 libs/gpm/block_chain/cmake_install.cmake
-libs/gpm/block_chain/command.hpp
 libs/gpm/block_chain/gpm_block_chain_test
 libs/gpm/block_chain/libgpm_block_chain.a
-libs/gpm/block_chain/state_database.cpp
-libs/gpm/block_chain/state_database.hpp
-libs/gpm/block_chain/transaction.hpp
 libs/gpm/cmake_install.cmake
 libs/gpm/crypto/.crypto.hpp.swo
 libs/gpm/crypto/.crypto.hpp.swp
