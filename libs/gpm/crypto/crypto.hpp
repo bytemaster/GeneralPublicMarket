@@ -15,6 +15,18 @@ namespace gpm {
     struct signature
     {
         char data[KeySize/8];
+        template<typename T,uint32_t KS>
+        friend boost::rpc::datastream<T>& operator<<( boost::rpc::datastream<T>& ds, const gpm::signature<KS>& sig )
+        {
+            ds.write(sig.data, KS/8 );
+            return ds;
+        }
+        template<typename T,uint32_t KS>
+        friend boost::rpc::datastream<T>& operator>>( boost::rpc::datastream<T>& ds, gpm::signature<KS>& sig )
+        {
+            ds.read(sig.data, KS/8 );
+            return ds;
+        }
     };
 
     bool verify_data( const char* key, uint32_t key_size, uint32_t pe, const boost::rpc::sha1_hashcode& hc, const char* sig ); 
@@ -135,18 +147,6 @@ namespace gpm {
 } // namespace gpm
 
 
-template<typename T,uint32_t KS>
-boost::rpc::datastream<T>& operator<<( boost::rpc::datastream<T>& ds, const gpm::signature<KS>& sig )
-{
-    ds.write(sig.data, KS/8 );
-    return ds;
-}
-template<typename T,uint32_t KS>
-boost::rpc::datastream<T>& operator>>( boost::rpc::datastream<T>& ds, gpm::signature<KS>& sig )
-{
-    ds.read(sig.data, KS/8 );
-    return ds;
-}
 template<typename T,uint32_t KS, uint32_t PE>
 boost::rpc::datastream<T>& operator<<( boost::rpc::datastream<T>& ds, const gpm::private_key<KS,PE>& pk )
 {

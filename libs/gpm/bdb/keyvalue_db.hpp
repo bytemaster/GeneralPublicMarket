@@ -46,7 +46,8 @@ class keyvalue_db
                     m_db->set_encrypt( password.c_str(), 0 );
                 }
                 m_db->set_bt_compare( &keyvalue_db::compare );
-                m_db->open( NULL, p.native_file_string().c_str(), "logical_file_name", DB_BTREE, DB_CREATE /*oflags*/, 0 );
+                m_db->open( NULL, p.native_file_string().c_str(), "logical_file_name", 
+                            DB_BTREE, DB_CREATE /*oflags*/, 0 );
             } 
             catch ( const DbException& e )
             {
