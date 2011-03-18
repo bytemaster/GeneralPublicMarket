@@ -13,7 +13,10 @@ SET( CMAKE_DEBUG_POSTFIX _debug )
 SET( BUILD_SHARED_LIBS NO )
 
 SET(Boost_USE_STATIC_LIBS ON)
-FIND_PACKAGE( Boost COMPONENTS thread date_time system filesystem program_options ) 
+FIND_PACKAGE( Boost COMPONENTS thread date_time system filesystem program_options signals ) 
+
+FIND_PACKAGE( Qt4 REQUIRED)
+ADD_DEFINITIONS( -DQT_NO_KEYWORDS )
 
 INCLUDE_DIRECTORIES( ${CMAKE_SOURCE_DIR}/libs/boost/reflect/include )
 INCLUDE_DIRECTORIES( ${CMAKE_SOURCE_DIR}/libs/boost/rpc/include )
@@ -25,8 +28,8 @@ LINK_DIRECTORIES( /usr/local/BerkeleyDB.5.1/lib )
 SET( BerkeleyDB_LIBRARY /usr/local/BerkeleyDB.5.1/lib/libdb_cxx.a )
 LINK_DIRECTORIES( ${Boost_LIBRARY_DIRS} )
 
-ADD_SUBDIRECTORY( libs/gpm )
 
-#FIND_PACKAGE( Qt4 REQUIRED)
-#ADD_DEFINITIONS( -DQT_NO_KEYWORDS )
+ADD_SUBDIRECTORY( libs/gpm )
+ADD_SUBDIRECTORY( programs/free_market )
+
 

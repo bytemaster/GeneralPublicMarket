@@ -1,4 +1,5 @@
 #include "block.hpp"
+#include <gpm/time/usclock.hpp>
 #include <boost/rpc/base64.hpp>
 #include <boost/rpc/super_fast_hash.hpp>
 #include <boost/rpc/json.hpp>
@@ -191,9 +192,9 @@ uint64_t calculate_hash_per_sec( uint64_t hashes )
 {
     boost::rpc::sha1_hashcode zero;
     block b;
-    uint64_t start = 0;//usclock();
+    uint64_t start = gpm::usclock();
     generate( b, zero, 0, hashes );
-    uint64_t end = 2000000; // usclock();
+    uint64_t end = gpm::usclock();
     
     return uint64_t(b.nonce / double((end-start)/1000000.0));
 }

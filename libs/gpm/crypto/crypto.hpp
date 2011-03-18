@@ -121,6 +121,23 @@ namespace gpm {
         {
             return sign_data( key, KeySize, PublicExponent, digest, sig.data );
         }
+
+        template<typename T,uint32_t KS, uint32_t PE>
+        friend boost::rpc::datastream<T>& operator<<( boost::rpc::datastream<T>& ds, const gpm::private_key<KS,PE>& pk )
+        {
+            ds << uint16_t(pk.key.size());
+            ds.write( &pk.key.front(), pk.key.size() );
+            return ds;
+        }
+        template<typename T,uint32_t KS, uint32_t PE>
+        friend boost::rpc::datastream<T>& operator>>( boost::rpc::datastream<T>& ds, gpm::private_key<KS,PE>& pk )
+        {
+            uint16_t s;
+            ds >> s;
+            pk.key.resize(s);
+            ds.read( &pk.key.front(), pk.key.size() );
+            return ds;
+        }
         private:
             template<uint32_t KS, uint32_t PE>
             friend void generate_keys( public_key<KS,PE>& pub, private_key<KS,PE>& priv );
@@ -147,16 +164,6 @@ namespace gpm {
 } // namespace gpm
 
 
-template<typename T,uint32_t KS, uint32_t PE>
-boost::rpc::datastream<T>& operator<<( boost::rpc::datastream<T>& ds, const gpm::private_key<KS,PE>& pk )
-{
-    return ds << pk.key;
-}
-template<typename T,uint32_t KS, uint32_t PE>
-boost::rpc::datastream<T>& operator>>( boost::rpc::datastream<T>& ds, gpm::private_key<KS,PE>& pk )
-{
-    return ds >> pk.key;
-}
 
 //BOOST_REFLECT_TYPEINFO( gpm::public_key_t )
 //BOOST_REFLECT_TYPEINFO( gpm::private_key_t )
