@@ -41,7 +41,6 @@ int main( int argc, char** argv )
     QCoreApplication::setOrganizationDomain("virtualventures.com");
     QCoreApplication::setApplicationName("Free Market");
 
-
  //   MainWindow* mw = new MainWindow();
  //   mw->show();
 
@@ -99,9 +98,12 @@ int main( int argc, char** argv )
         while( !done )
         {
             std::cout<<"]$ ";
-        //    QCoreApplication::processEvents();
             QFuture<std::string> s = QtConcurrent::run( stdin_getline );
-            s.waitForFinished();
+            while( !s.isFinished() )
+            {
+                app.processEvents();
+                usleep(1000 * 10 );
+            }
             std::string line = s.result();
             std::stringstream ss(line);
             std::string cmd;
@@ -112,25 +114,29 @@ int main( int argc, char** argv )
                 wlog( "exit!" );
                 app.quit();
                 done = true;
+                continue; 
             }
             else if( cmd == "help" )
             {
-                std::cout << "start                    - start a new transaction\n";
-                std::cout << "commit                   - submit the completed transaction to the network\n";
-                std::cout << "abort                    - reset the the transaction\n";
-                std::cout << "exit                     - quit gpm\n";
-                std::cout << "ln                       - list all names\n";
-                std::cout << "contents account         - list all balances in account\n";
-                std::cout << "balance  account stock   - print the balance of the account\n";
-                std::cout << "register  name           - generates a pub/priv key and r \n";
-                std::cout << "address_of name          - generates a pub/priv key and r \n";
-                std::cout << "genkey [alias]           - generates a key";
-                std::cout << "list_keys                - lists keys";
-                std::cout << "transfer amount from to  -  \n";
-
+                std::cout << "generate name                   - start generating with the given name\n";
+                std::cout << "start                           - start a new transaction\n";
+                std::cout << "commit                          - submit the completed transaction to the network\n";
+                std::cout << "transfer amount stock src dst   - transfers stock of type from 'from' to 'to'\n";
+                std::cout << "issue stock                     - issues a new stock\n";
+                std::cout << "abort                           - reset the the transaction\n";
+                std::cout << "exit                            - quit gpm\n";
+                std::cout << "ln                              - list all names\n";
+                std::cout << "contents account                - list all balances in account\n";
+                std::cout << "balance  account stock          - print the balance of the account\n";
+                std::cout << "register  name                  - generates a pub/priv key and r \n";
+                std::cout << "address_of name                 - generates a pub/priv key and r \n";
+                std::cout << "genkey [alias]                  - generates a key";
+                std::cout << "list_keys                       - lists keys";
+                std::cout << "dump start len                  - dump trx";
             }
             else if( cmd == "ln" )
             {
+                std::cerr<<"ln: not implemented\n";
             }
             else if( cmd == "contents" )
             {
@@ -288,7 +294,7 @@ int main( int argc, char** argv )
             }
         }
         
-        app.exec();
+        //app.exec();
     } 
     catch ( const boost::exception& e )
     {

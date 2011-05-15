@@ -7,9 +7,57 @@
 #include <gpm/block_chain/block.hpp>
 #include <gpm/block_chain/transaction.hpp>
 
+#include <QtConcurrentRun>
+#include <QCoreApplication>
+#include <QEvent>
+#include <boost/bind.hpp>
 
 namespace gpm {
   class node_private;
+
+    class QFunctorEventBase : public QEvent
+    {
+        public:
+            QFunctorEventBase()
+            :QEvent( QEvent::User )
+            {
+            }
+            virtual void exec() = 0;
+    };
+
+    template<typename Functor>
+    class QFunctorEvent: public QFunctorEventBase
+    {
+        public:
+            QFunctorEvent( const Functor& f ):m_f(f){}
+
+            virtual void exec()
+            {
+                m_f();
+            }
+        private:
+            Functor m_f;
+    };
+
+    class QFunctorHandler : public QObject
+    {
+        public:
+            bool event( QEvent* e )
+            {
+                QFunctorEventBase* fe = dynamic_cast<QFunctorEventBase*>(e);
+                if( fe )
+                {
+                    fe->exec();
+                    return true;
+                }
+                return false;
+            }
+    };
+
+    template<typename Functor>
+    QFunctorEventBase* make_event( const Functor& f ) { return new QFunctorEvent<Functor>(f); }
+
+
 
   struct trx_log
   {
@@ -62,32 +110,38 @@ namespace gpm {
 
       void dump( uint32_t start = 0, uint32_t len = 100000 );
 
+
+      template<typename Functor>
+      void exec( Functor f )
+      {
+        
+      }
     
     // interface
       bool                     can_register( const std::string& name );
-      full_block_state      get_full_block( uint32_t index );                                     
-      int32_t               get_head_block_index()const;                                        
-      
-      signed_transaction    get_transaction( const boost::rpc::sha1_hashcode& trx );
-      std::vector<trx_log>  get_transaction_log( const std::string& account, 
-                                                 const std::string& type,
-                                                 uint64_t start_date = 0, 
-                                                 uint64_t end_date = -1);
-
-      block                 get_block_by_index( uint32_t index );
-      block_state           get_block_state( const boost::rpc::sha1_hashcode& blk_state );
-      public_key_t          get_public_key_t( const std::string& name );
-      bool                  has_balance(  const std::string& account, const std::string& type );
-      uint64_t              get_balance( const std::string& account, const std::string& type );
+      full_block_state         get_full_block( uint32_t index );                                     
+      int32_t                  get_head_block_index()const;                                        
+                               
+      signed_transaction       get_transaction( const boost::rpc::sha1_hashcode& trx );
+      std::vector<trx_log>     get_transaction_log( const std::string& account, 
+                                                    const std::string& type,
+                                                    uint64_t start_date = 0, 
+                                                    uint64_t end_date = -1);
+                               
+      block                    get_block_by_index( uint32_t index );
+      block_state              get_block_state( const boost::rpc::sha1_hashcode& blk_state );
+      public_key_t             get_public_key_t( const std::string& name );
+      bool                     has_balance(  const std::string& account, const std::string& type );
+      uint64_t                 get_balance( const std::string& account, const std::string& type );
       std::vector<std::string> get_account_contents( const std::string& account );
 
-      std::vector<char>  get_state_chunk( uint32_t part, const boost::rpc::sha1_hashcode& hash );
-
-      uint64_t                            get_hashrate()const; // hash/sec
-
-      int                add_transaction( const signed_transaction& trx );
-      int                add_block( const block& blk );
-      int                add_full_block( const full_block_state& fbs );
+      std::vector<char>        get_state_chunk( uint32_t part, const boost::rpc::sha1_hashcode& hash );
+                               
+      uint64_t                                  get_hashrate()const; // hash/sec
+                               
+      int                      add_transaction( const signed_transaction& trx );
+      int                      add_block( const block& blk );
+      int                      add_full_block( const full_block_state& fbs );
 
       boost::signal<void(const std::string&)>                new_name;
 
@@ -95,7 +149,9 @@ namespace gpm {
       boost::signal<void(const full_block_state& )>           new_block;
 
     private:
+      friend class node_private;
       node_private* my;     
+      QFunctorHandler main_thread;
   };
 
 } // namespace gpm

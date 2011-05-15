@@ -6,6 +6,7 @@
 #include <boost/rpc/super_fast_hash.hpp>
 #include <boost/rpc/json.hpp>
 
+
 inline bool operator < ( const std::pair<bool, boost::rpc::sha1_hashcode>& l, 
                          const std::pair<bool, boost::rpc::sha1_hashcode>& r )
 {
@@ -22,7 +23,10 @@ inline bool operator == ( const std::pair<bool, boost::rpc::sha1_hashcode>& l,
     return l.first == r.first && l.second == r.second;
 }
 
+
+
 namespace gpm {
+
 
 enum transaction_state
 {
@@ -250,6 +254,8 @@ class node_private
             m_gen_stopped = false;
             m_stop_gen    = false;
             slog( "starting to generate block target difficulty %1%", (160 -to_bigint(m_hash_target).log2() ) );
+
+            QtConcurrent::run( boost::bind( &node_private::generate, this, new_block, m_hash_target ) );
 // TODO            m_gen_thread.get_scheduler()->schedule<void>(boost::bind( &node_private::generate, this, new_block, m_hash_target ), "generate" );
         }
 
@@ -281,6 +287,7 @@ class node_private
         {
             uint64_t end_time = gpm::usclock();
             slog( "Done generating, found block in %1% s", (double(end_time-start_time)/1000000.0) );
+            QCoreApplication::instance()->postEvent( &self->main_thread, make_event( boost::bind( &node_private::generated_block, this, best ) ) );
 //TODO       m_sch->schedule<void>( boost::bind( &node_private::generated_block, this, best ), "generated_block"  );
             m_stop_gen = true;
         }
