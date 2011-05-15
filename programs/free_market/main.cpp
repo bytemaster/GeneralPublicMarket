@@ -5,6 +5,7 @@
 
 //#include <gpm/client.hpp>
 #include <gpm/bdb/keyvalue_db.hpp>
+#include <gpm/node/server.hpp>
 
 #include <QSettings>
 #include <QDir>
@@ -48,8 +49,10 @@ int main( int argc, char** argv )
         std::string gen_name("none" );
         std::string data_dir( "gpm_data" );
         bool do_create;
+        uint16_t server_port = 8000;
         std::string backbone_network("239.255.255.1:4794");
         std::string urn("free_market");
+        std::string keys("gpm_keys.db" );
         std::vector<std::string> clients;
 
         namespace po = boost::program_options;
@@ -59,8 +62,9 @@ int main( int argc, char** argv )
             ("gen_name,n", po::value<std::string>(&gen_name), "Name of the generator, 'none' if node is not generating" )
             ("data_dir,d", po::value<std::string>(&data_dir), "Directory to store data" )
             ("create,c", po::value<bool>(&do_create), "Create new chain" )
-            ("client,C", po::value<std::vector<std::string> >(&clients), "One or more client urns to talk to" )
-            ("urn,u",    po::value<std::string>(&urn)->default_value(urn), "The URN to be used by this node" )
+            ("keychain,k", po::value<std::string>(&keys)->default_value(keys), "File containing private keys" )
+            ("client,C", po::value<std::vector<std::string> >(&clients), "One or more client to connect to HOST:PORT" )
+            ("server_port,p",    po::value<uint16_t>(&server_port)->default_value(server_port), "The URN to be used by this node" )
         ;
 
         po::variables_map vm;
@@ -80,18 +84,22 @@ int main( int argc, char** argv )
 //        bb::server_ptr rd_server( new bb::server( get_node(), urn) );
 //        net->add_server(rd_server);
 
+
         //keychain::ptr keyc( new keychain() ); // NULL, "keychain.db", "keychain" );
         //name_key_map::ptr nkm( new name_key_map() ); // NULL, "keychain.db", "keychain" );
-        get_keychain().open( "keychain_pubpriv.db" );
+        get_keychain().open( keys );
         //nkm->open( "name_key_map.db" );
         get_node()->open( data_dir, true );
 
 //        gpm::client* c = new gpm::client( get_node(), net );
-//        for( uint32_t i = 0; i < clients.size(); ++i )
-//            c->connect_to( clients[i] );
 
+        gpm::server server(get_node(), server_port);
+        for( uint32_t i = 0; i < clients.size(); ++i )
+            server.connect_to( clients[i] );
 
         boost::shared_ptr<node> n = get_node();
+
+
 
         bool done = false;
         gpm::signed_transaction trx;
@@ -306,6 +314,7 @@ int main( int argc, char** argv )
  */
 bool sign( signed_transaction& trx, const node::ptr& n )
 {
+    try {
     std::vector<std::string> sigs;
     for( uint32_t c = 0; c < trx.trx.commands.size(); ++c )
     {
@@ -407,6 +416,11 @@ bool sign( signed_transaction& trx, const node::ptr& n )
 
     }
     return true;
+    } catch ( ... )
+    {
+        elog( "Error signing transaction" );
+        return false;
+    }
 }
 void transfer( signed_transaction& trx, uint64_t amnt, const std::string& shares, 
                const std::string& from, const std::string& to, const node::ptr& n  )

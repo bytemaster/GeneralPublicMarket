@@ -365,8 +365,8 @@ void node::open( const boost::filesystem::path& data_dir, bool create )
     {
         wlog(  "No current blockchain." );
     }
-    else
-        my->dump( my->m_block_chain );
+//    else
+//        my->dump( my->m_block_chain );
     my->m_head_trx = state_database_transaction::ptr( new state_database_transaction( my->m_state_db ) );
     my->m_gen_trx  = state_database_transaction::ptr( new state_database_transaction( my->m_head_trx ) );
 
@@ -374,7 +374,7 @@ void node::open( const boost::filesystem::path& data_dir, bool create )
     my->synchronize_state();
 
     wlog(  "initial head trx %1%    gen_trx: %2%   file: %3%", my->m_head_trx.get(),  my->m_gen_trx.get(), my->m_state_db.get() );
-    my->m_state_db->dump();
+ //   my->m_state_db->dump();
 }
 
 

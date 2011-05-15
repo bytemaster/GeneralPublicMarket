@@ -17,44 +17,10 @@ struct connection
         {
         }
 
+        void start();
+
         void read_message( int state = 0, const boost::system::error_code& ec = boost::system::error_code(),
-                                             size_t bytes_read = 0)
-        {
-            if( ec )
-            {
-                elog( "Error processing message." );
-            }
-            switch( state )
-            {
-                case 0: // start by reading the id 
-                   boost::asio::async_read(  sock, boost::asio::buffer( (char*)&msg.id, sizeof(msg.id) ),
-                                             boost::bind( &connection::read_message, this, state + 1, 
-                                                          boost::asio::placeholders::error, 
-                                                          boost::asio::placeholders::bytes_transferred ) );
-                   return;
-                case 1: // then read the size
-                    boost::asio::async_read(  sock, boost::asio::buffer( (char*)&msg_size, sizeof(msg_size) ),
-                                             boost::bind( &connection::read_message, this, state + 1, 
-                                                          boost::asio::placeholders::error, 
-                                                          boost::asio::placeholders::bytes_transferred ) );
-
-                    return;
-                case 2: // then read the data
-                    msg.data.resize(msg_size);
-                    boost::asio::async_read(  sock, boost::asio::buffer( msg.data ),
-                                             boost::bind( &connection::read_message, this, state + 1, 
-                                                          boost::asio::placeholders::error, 
-                                                          boost::asio::placeholders::bytes_transferred ) );
-
-                    return;
-                case 3: // then process the message
-                    handle_message( msg );
-                       
-                    // start reading the next message
-                    read_message();
-
-            }
-        }
+                                             size_t bytes_read = 0);
         void handle_message( const gpm::proto::message& msg );
 
         // called via node->exec()
@@ -63,13 +29,20 @@ struct connection
         // called via node->exec()
         void get_head_block_index();
 
+        void send_transaction( const signed_transaction& trx );
+        void send_full_block( const full_block_state& blk );
         void send_message( const proto::message& msg );
         void handle_write( std::vector<char>* data, const boost::system::error_code& err );
+    
+        void add_full_block( const proto::report_full_block& rfb );
 
         proto::message               msg;
         uint32_t                     msg_size;
         boost::asio::ip::tcp::socket sock;
         boost::shared_ptr<gpm::node> m_node;
+
+        boost::signals::connection new_block_con;
+        boost::signals::connection new_trx_con;
 };
 
 /**
@@ -78,14 +51,15 @@ struct connection
 class server 
 {
     public:
-        server( const boost::shared_ptr<gpm::node>& node )
-        :m_node(node), m_acceptor(m_ios)
+        server( const boost::shared_ptr<gpm::node>& node, uint16_t port )
+        :m_node(node), m_acceptor(m_ios, boost::asio::ip::tcp::endpoint(boost::asio::ip::tcp::v4(),port) )
         {
+            slog( "starting node server on port %1%", port );
             the_work = new boost::asio::io_service::work(m_ios);
             m_thread.reset( new boost::thread( boost::bind( &boost::asio::io_service::run, &m_ios ) ) );
 
-            node->new_transaction.connect( boost::bind( &server::send_transaction, this, _1 ) );
-            node->new_block.connect( boost::bind( &server::send_full_block, this, _1 ) );
+
+            start_accept();
         }
         ~server()
         {
@@ -93,36 +67,17 @@ class server
             m_ios.stop();
             m_thread->join();
         }
-        void start_accept()
+        bool connect_to( const std::string& host_port )
         {
-            boost::shared_ptr<connection> con( new connection(m_ios, m_node) );
+            slog( "attempting to connect to %1%", host_port );
+            std::string host = host_port.substr( 0, host_port.find(':') );
+            std::string port = host_port.substr( host_port.find(':') + 1, host_port.size() );
 
-            // TODO: wrap in strand to resolve conflict with m_connections...
-            m_acceptor.async_accept( con->sock, boost::bind( &server::handle_accept, this, con, boost::asio::placeholders::error ) );
-        }
-        void handle_accept( const boost::shared_ptr<connection>& con, const boost::system::error_code& error )
-        {
-            if( !error )
-            {
-                m_connections.push_back( con );
-                con->read_message();
-                start_accept();
-            }
-            else
-            {
-                elog( "Error accepting connection" );
-            }
-        }
-
-        void connect_to( const std::string& host, uint16_t port )
-        {
-            std::stringstream ss;
-            ss << port;
             using namespace boost::asio::ip;
             tcp::resolver resolver(m_ios);
-            tcp::resolver::query query(host, ss.str() );
+            tcp::resolver::query query(host, port );
             tcp::resolver::iterator itr = resolver.resolve(query);
-            tcp::resolver::iterator end = resolver.resolve(query);
+            tcp::resolver::iterator end;
             
             boost::shared_ptr<connection> con( new connection(m_ios, m_node) );
             boost::system::error_code err = boost::asio::error::host_not_found;
@@ -133,19 +88,40 @@ class server
             }
             if( err )
             {
-                throw boost::system::system_error(err);
+                BOOST_THROW_EXCEPTION( boost::system::system_error(err) );
             }
 
+            slog( "connected to %1%", host_port );
             // TODO: move this to strand
             m_connections.push_back(con); 
-
-            con->get_full_block( m_node->get_head_block_index() + 1 );
+            con->start();
         }
 
-        void send_transaction( const signed_transaction& trx );
-        void send_full_block( const full_block_state& blk );
 
     private:
+        void start_accept()
+        {
+            boost::shared_ptr<connection> con( new connection(m_ios, m_node) );
+
+            // TODO: wrap in strand to resolve conflict with m_connections...
+            m_acceptor.async_accept( con->sock, boost::bind( &server::handle_accept, this, con, boost::asio::placeholders::error ) );
+        }
+
+        void handle_accept( const boost::shared_ptr<connection>& con, const boost::system::error_code& error )
+        {
+            if( !error )
+            {
+                slog( "new connection" );
+                m_connections.push_back( con );
+                con->start();
+                start_accept();
+            }
+            else
+            {
+                elog( "Error accepting connection" );
+            }
+        }
+
         boost::shared_ptr<gpm::node>     m_node;
         boost::asio::io_service          m_ios;
         boost::asio::ip::tcp::acceptor   m_acceptor;

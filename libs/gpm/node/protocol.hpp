@@ -28,14 +28,18 @@ namespace gpm {
             }
         };
 
-        struct add_transaction
+        struct report_transaction
         {
             enum id_enum { id = 0x01 };
+            report_transaction( const signed_transaction& t = signed_transaction() )
+            :trx(t){}
+
             signed_transaction trx;
         };
         struct get_full_block
         {
             enum id_enum { id = 0x02 };
+            get_full_block( uint32_t i = 0 ):index(i){}
             uint32_t index;
         };
         struct report_full_block
@@ -59,7 +63,7 @@ namespace gpm {
  } // namespace gpm
 
  BOOST_REFLECT( gpm::proto::message,                 BOOST_PP_SEQ_NIL, (id)(data) )
- BOOST_REFLECT( gpm::proto::add_transaction,         BOOST_PP_SEQ_NIL, (trx) )
+ BOOST_REFLECT( gpm::proto::report_transaction,         BOOST_PP_SEQ_NIL, (trx) )
  BOOST_REFLECT( gpm::proto::get_full_block,          BOOST_PP_SEQ_NIL, (index) )
  BOOST_REFLECT( gpm::proto::report_full_block,       BOOST_PP_SEQ_NIL, (state) )
  BOOST_REFLECT( gpm::proto::get_head_block_index,    BOOST_PP_SEQ_NIL, BOOST_PP_SEQ_NIL )

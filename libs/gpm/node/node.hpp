@@ -114,7 +114,7 @@ namespace gpm {
       template<typename Functor>
       void exec( Functor f )
       {
-        
+        QCoreApplication::instance()->postEvent( &main_thread, make_event( f ) );
       }
     
     // interface
