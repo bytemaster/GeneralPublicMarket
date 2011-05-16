@@ -108,11 +108,11 @@ class node_private
             std::vector<signed_transaction> strx(trx.size());
             for( uint32_t i = 0; i < trx.size(); ++i )
             {
-                slog( "looking for %1% in group %2%", trx[i], group );
+                //slog( "looking for %1% in group %2%", trx[i], group );
                 boost::optional<signed_transaction> s = m_trx_db->get( std::make_pair(group,trx[i]) );
                 if( !s )
                 {
-                    elog( "not found!" );
+                    elog( "Unable to find transaction %1% in group %2%", trx[i], group);
                     strx.resize(0);
                     return strx;
                 }
@@ -126,7 +126,7 @@ class node_private
                                                     m_trx_db->search( std::make_pair( from_group, boost::rpc::sha1_hashcode() ) );
             while( !itr.end() && itr.key().first == from_group)
             {
-                slog( "%1% to %2%", boost::rpc::to_json(itr.key() ), to_group );
+              //  slog( "%1% to %2%", boost::rpc::to_json(itr.key() ), to_group );
                 m_trx_db->set( std::make_pair( to_group, itr.key().second ), itr.value() );
                 std::pair<int,boost::rpc::sha1_hashcode> rm = std::make_pair( from_group, itr.key().second );
                 if( !m_trx_db->remove( rm ) )
@@ -181,12 +181,15 @@ class node_private
         bool                         m_generating;
         volatile bool                m_stop_gen;
         volatile bool                m_gen_stopped;
-        void start_block()
-        {
-            slog( "starting block" );
-            m_generating = true;
-            m_stop_gen = true;
 
+        static bool by_time(const std::pair<boost::rpc::sha1_hashcode, signed_transaction>& left, 
+                            const std::pair<boost::rpc::sha1_hashcode, signed_transaction>& right )
+        {
+            return left.second.trx.utc_time < right.second.trx.utc_time;
+        }
+
+        block create_gen_block()
+        {
             m_gen_trx->abort();
             if( m_block_chain.size() == 0 )
             {
@@ -213,22 +216,54 @@ class node_private
 
             block new_block;
             new_block.prev_block = boost::rpc::raw::hash_sha1( m_block_chain.back() );
-            wlog(  "generating prev_block = %1%", new_block.prev_block );
+            //wlog(  "generating prev_block = %1%", new_block.prev_block );
 
             block_state new_state;
             new_state.index = m_block_chain.size();
             new_state.generator_name = m_gen_name;
 
             
-            slog( "searching for trx" );
+            //slog( "building gen block..." );
             bdb::keyvalue_db<std::pair<int,boost::rpc::sha1_hashcode>,signed_transaction >::iterator 
                     itr = m_trx_db->search( std::make_pair( PENDING_TRX, boost::rpc::sha1_hashcode() ) );
+
+            std::vector<std::pair<boost::rpc::sha1_hashcode,signed_transaction> > trx_vector;
+            // push them into vector
             while( !itr.end() && itr.key().first == PENDING_TRX  )
             {
-                wlog(  "found trx, try to appy it" );
+                trx_vector.push_back( std::make_pair(itr.key().second,itr.value()) );
+        //         wlog( "%1% should equal", boost::rpc::raw::hash_sha1(trx_vector.back()) ); //itr.key().second);
+        //         wlog( "%1%", itr.key().second );
+                ++itr;
+            }
+            // sort them
+            std::sort(trx_vector.begin(), trx_vector.end(), node_private::by_time );
+
+            // apply them
+            std::vector<std::pair<boost::rpc::sha1_hashcode,signed_transaction> >::iterator titr = trx_vector.begin();
+            std::vector<std::pair<boost::rpc::sha1_hashcode,signed_transaction> >::iterator end = trx_vector.end();
+            while( titr != end )
+            {
                 state_database_transaction::ptr  tmp_trx( new state_database_transaction( m_gen_trx ) );
-                slog("key: %1%  value: ", boost::rpc::to_json(itr.key())  );
-                    dump( itr.value() );
+                dump( titr->second );
+                if( tmp_trx->apply( titr->second, m_gen_name ) )
+                {
+                    new_state.signed_transactions.push_back(titr->first);
+                    tmp_trx->commit();
+                }
+                else
+                {
+                    elog( "Error applying transaction." );
+                }
+                ++titr;
+            }
+          /*
+            while( !itr.end() && itr.key().first == PENDING_TRX  )
+            {
+             //   wlog(  "found trx, try to appy it" );
+                state_database_transaction::ptr  tmp_trx( new state_database_transaction( m_gen_trx ) );
+              //  slog("key: %1%  value: ", boost::rpc::to_json(itr.key())  );
+                dump( itr.value() );
                 if( tmp_trx->apply( itr.value(), m_gen_name ) )
                 {
                     new_state.signed_transactions.push_back(itr.key().second);
@@ -240,23 +275,34 @@ class node_private
                 }
                 ++itr;
             }
+            */
 
             new_state.state_db       = m_gen_trx->calculate_state_hash();
-            slog( "new_state %1%", new_state.state_db );
+           // slog( "new_state %1%", new_state.state_db );
             new_block.utc_time = gpm::utc_clock() / 1000000 + SECONDS_PER_BLOCK;
             new_block.state = boost::rpc::raw::hash_sha1(new_state);
             m_block_state_db->set( new_block.state, new_state );
 
-            while( !m_gen_stopped ){} // block until it finished the last
 
-            m_hash_target = calculate_hash_target( m_block_chain );
+            return new_block;
+        }
+        void start_block()
+        {
+            //slog( "starting block" );
+            m_generating = true;
+            m_stop_gen = true;
+
+            block new_block =  create_gen_block();
+
+            while( !m_gen_stopped ){} // block until it finished the last
 
             m_gen_stopped = false;
             m_stop_gen    = false;
             slog( "starting to generate block target difficulty %1%", (160 -to_bigint(m_hash_target).log2() ) );
 
+            m_hash_target = calculate_hash_target( m_block_chain );
+
             QtConcurrent::run( boost::bind( &node_private::generate, this, new_block, m_hash_target ) );
-// TODO            m_gen_thread.get_scheduler()->schedule<void>(boost::bind( &node_private::generate, this, new_block, m_hash_target ), "generate" );
         }
 
     void generate( const block& b, const boost::rpc::sha1_hashcode& _target )
@@ -373,7 +419,7 @@ void node::open( const boost::filesystem::path& data_dir, bool create )
     // clean up the known state.
     my->synchronize_state();
 
-    wlog(  "initial head trx %1%    gen_trx: %2%   file: %3%", my->m_head_trx.get(),  my->m_gen_trx.get(), my->m_state_db.get() );
+ //   wlog(  "initial head trx %1%    gen_trx: %2%   file: %3%", my->m_head_trx.get(),  my->m_gen_trx.get(), my->m_state_db.get() );
  //   my->m_state_db->dump();
 }
 
@@ -387,6 +433,11 @@ void node::configure_generation( const std::string& gn, bool on )
     {
         my->start_block();
     }
+    else
+    {
+        my->m_stop_gen = true;
+    }
+
 }
 
 bool node::is_generating()const
@@ -499,7 +550,7 @@ uint64_t node::get_balance( const std::string& account, const std::string& type 
 
 std::vector<std::string> node::get_account_contents( const std::string& account )
 {
-    slog( "get contents %1%", account );
+//    slog( "get contents %1%", account );
     std::vector<std::string> names =  my->m_gen_trx->get_account_contents(account);
     std::vector<std::string> n;n.resize( names.size() );
     for( uint32_t i = 0; i < names.size(); ++i )
@@ -516,7 +567,7 @@ std::vector<char>  node::get_state_chunk( uint32_t part, const boost::rpc::sha1_
 
 int node::add_transaction( const signed_transaction& tx )
 {
-    wlog(  "add trx %1%", boost::rpc::to_json(tx) );
+    //wlog(  "add trx %1%", boost::rpc::to_json(tx) );
     boost::rpc::sha1_hashcode h = boost::rpc::raw::hash_sha1(tx);
     for( uint32_t i = 0; i < 3; ++i )
     {
@@ -528,9 +579,12 @@ int node::add_transaction( const signed_transaction& tx )
         }
     }
     my->m_trx_db->set( std::make_pair( PENDING_TRX, boost::rpc::raw::hash_sha1(tx)), tx ); 
+//    my->dump( tx );
     new_transaction(tx);
     if( is_generating() )
         my->start_block();
+    else
+        my->create_gen_block();
     return 0;
 }
 
@@ -555,9 +609,9 @@ int node::add_full_block( const full_block_state& blk )
         }
         if( !found )
         {
-            slog( "adding trx %1%", blk.blk_state.signed_transactions[i] );
+            //slog( "adding trx %1%", blk.blk_state.signed_transactions[i] );
             boost::rpc::sha1_hashcode hc = boost::rpc::raw::hash_sha1(blk.trxs[i]); 
-            slog( "hc: %1%", hc );
+            //slog( "hc: %1%", hc );
 
             my->m_trx_db->set( std::make_pair( PENDING_TRX, hc), blk.trxs[i] ); 
             added_trx = true;
@@ -582,10 +636,10 @@ int node::add_full_block( const full_block_state& blk )
     int rtn = add_block( blk.blk );
     if( rtn <= 0 && added_trx && is_generating() )
         my->start_block();
-    if( rtn > 0 )
-    {
-        my->dump(my->m_block_chain);
-    }
+//    if( rtn > 0 )
+//    {
+//        my->dump(my->m_block_chain);
+//    }
 
     return rtn;
 }
@@ -663,6 +717,10 @@ int node::add_block( const block& blk )
                 fbs.blk = blk;
                 fbs.blk_state = *bs;
 
+                slog( "Appending to Head" );
+                std::cout<<"Appending to head...\n";
+                my->dump( my->m_block_chain, my->m_block_chain.size()-1, 1);
+
                 //emit
                 new_block( fbs );
 
@@ -671,11 +729,11 @@ int node::add_block( const block& blk )
                 return 1;
             }
         }
-        elog( "blk: %1% %2%", boost::rpc::to_json(blk),  bs->generator_name  );
-        my->dump( my->m_block_chain, my->m_block_chain.size()-10, 11);
+//        elog( "blk: %1% %2%", boost::rpc::to_json(blk),  bs->generator_name  );
+        elog( "Error applying transactions from block" );
+        my->dump( my->m_block_chain, my->m_block_chain.size()-1, 1);
         
         my->m_block_chain.pop_back();
-        elog( "Error applying transactions." );
         return -3;
     }
     else if( blk.prev_block == my->m_block_chain.back().prev_block )
@@ -707,7 +765,10 @@ int node::add_block( const block& blk )
                 fbs.trxs = strxs;
                 fbs.blk = blk;
                 fbs.blk_state = *bs;
-                // emit
+
+                std::cout<<"Replacing head with lower hash...\n";
+                my->dump( my->m_block_chain, my->m_block_chain.size()-1, 1);
+
                 new_block( fbs );
                 if( my->m_gen_enabled )
                     my->start_block();
@@ -738,29 +799,30 @@ void node::dump( uint32_t start, uint32_t len )
 void node_private::dump( const signed_transaction& trx )
 {
     static boost::posix_time::ptime epoch(boost::gregorian::date(1970, boost::gregorian::Jan, 1));
-     std::cerr << "     ";
-    std::cerr << (epoch + boost::posix_time::microseconds(trx.trx.utc_time) ) << "  \n";
+//    std::cout << "trx: " << boost::rpc::super_fast_hash( trx );
+//    std::cout << "     ";
+    std::cout << (epoch + boost::posix_time::microseconds(trx.trx.utc_time) ) << "  \n";
     for( uint32_t c = 0; c < trx.trx.commands.size(); ++c )
     {
         if( trx.trx.commands[c].id == cmd::register_name::id )
         {
             cmd::register_name rn = trx.trx.commands[c];
-            std::cerr<<"        register_name: '" << rn.name <<"'  public_key: "<< boost::rpc::super_fast_hash(boost::rpc::to_json(rn.pub_key)) << std::endl;
+            std::cout<<"        register_name: '" << rn.name <<"'  public_key: "<< boost::rpc::super_fast_hash(boost::rpc::to_json(rn.pub_key)) << std::endl;
         }
         else if( trx.trx.commands[c].id == cmd::issue::id )
         {
             cmd::issue rn = trx.trx.commands[c];
-            std::cerr<<"        issue "<< rn.stock_name << std::endl;
+            std::cout<<"        issue "<< rn.stock_name << std::endl;
         }
         else if( trx.trx.commands[c].id == cmd::transfer::id )
         {
             cmd::transfer tr = trx.trx.commands[c];
-            std::cerr<<"        transfer: '" << std::dec << tr.amount <<"'  from: "<< (tr.from_name.size() ? tr.from_name : "*NEW*" )
+            std::cout<<"        transfer: '" << std::dec << tr.amount <<"'  from: "<< (tr.from_name.size() ? tr.from_name : "*NEW*" )
                      <<"  to: " << (tr.to_name.size() ? tr.to_name : "(gen)") << std::endl;
         }
         else
         {
-            std::cerr<<"        cmd: " << trx.trx.commands[c].id << std::endl;
+            std::cout<<"        cmd: " << trx.trx.commands[c].id << std::endl;
         }
     }
 
@@ -772,18 +834,18 @@ void node_private::dump( const block_chain& bc, uint32_t start, uint32_t len )
     static boost::posix_time::ptime epoch(boost::gregorian::date(1970, boost::gregorian::Jan, 1));
     for( uint32_t i =  start; i < bc.size() && i < start + len; ++i )
     {
-        std::cerr << std::dec << i << "]   " << boost::rpc::raw::hash_sha1(bc[i]) 
+        std::cout << std::dec << i << "]   " << boost::rpc::raw::hash_sha1(bc[i]) 
                   << "  prev:  " << bc[i].prev_block 
                   << "  time:  " << (epoch + boost::posix_time::seconds( bc[i].utc_time )) 
                   << "  state: " << bc[i].state ;
 
 
         block_state bs = self->get_block_state( bc[i].state );
-        std::cerr << "  state_db: " << bs.state_db << "  generator: " << bs.generator_name << std::endl;
+        std::cout << "  state_db: " << bs.state_db << "  generator: " << bs.generator_name << std::endl;
 
         for( uint32_t t = 0; t < bs.signed_transactions.size(); ++t )
         {
-            std::cerr<< "    " << t <<")  trx: " << bs.signed_transactions[t] << std::endl;
+            std::cout<< "    " << t <<") ";// trx: " << bs.signed_transactions[t] << " ";
             signed_transaction trx = self->get_transaction( bs.signed_transactions[t] );
             dump(trx);
         }
@@ -791,10 +853,10 @@ void node_private::dump( const block_chain& bc, uint32_t start, uint32_t len )
     }
     catch ( const boost::exception& e )
     {
-    std::cerr<<"\n";
+    std::cout<<"\n";
         elog( "exception: %1%", boost::diagnostic_information(e) );
     }
-    std::cerr<<"\n";
+    std::cout<<"\n";
 }
 std::vector<trx_log> node::get_transaction_log( const std::string& account, const std::string& type,
                                                           uint64_t start_date , uint64_t end_date )

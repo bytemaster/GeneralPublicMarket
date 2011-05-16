@@ -10,7 +10,7 @@
 // the block window prevents one lucky hash from
 // greatly increasing the difficulty.
 #define BLOCK_WINDOW        30
-#define SECONDS_PER_BLOCK   15
+#define SECONDS_PER_BLOCK   15 
 
 namespace gpm {
     using boost::rpc::sha1_hashcode;

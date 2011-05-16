@@ -35,6 +35,7 @@ struct connection
         void handle_write( std::vector<char>* data, const boost::system::error_code& err );
     
         void add_full_block( const proto::report_full_block& rfb );
+        void add_transaction( const proto::report_transaction& rfb );
 
         proto::message               msg;
         uint32_t                     msg_size;
@@ -43,6 +44,8 @@ struct connection
 
         boost::signals::connection new_block_con;
         boost::signals::connection new_trx_con;
+
+        boost::signal<void()>        closed;
 };
 
 /**
@@ -93,12 +96,18 @@ class server
 
             slog( "connected to %1%", host_port );
             // TODO: move this to strand
+            con->closed.connect( boost::bind( &server::connection_closed, this, con ) );
             m_connections.push_back(con); 
             con->start();
         }
 
 
     private:
+        void connection_closed( const boost::shared_ptr<connection>& c )
+        {
+            m_connections.erase( std::find( m_connections.begin(), m_connections.end(), c ) );
+        }
+
         void start_accept()
         {
             boost::shared_ptr<connection> con( new connection(m_ios, m_node) );
@@ -112,6 +121,7 @@ class server
             if( !error )
             {
                 slog( "new connection" );
+                con->closed.connect( boost::bind( &server::connection_closed, this, con ) );
                 m_connections.push_back( con );
                 con->start();
                 start_accept();

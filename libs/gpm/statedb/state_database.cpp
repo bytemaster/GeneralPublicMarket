@@ -50,9 +50,9 @@ bool sdt::append_record(  const state_record& r )
     std::vector<char> v;
     boost::rpc::raw::pack( v, r2 );
     local_changes.insert( local_changes.end(), v.begin(), v.end() );
-    wlog( "VVVVVVVV APPEND at %1% VVVVVVVV", r2.previous );
-    dump(r);
-    wlog( "^^^^^^^ APPEND ^^^^^^^^^" );
+//    wlog( "VVVVVVVV APPEND at %1% VVVVVVVV", r2.previous );
+//    dump(r);
+//    wlog( "^^^^^^^ APPEND ^^^^^^^^^" );
     return true;
 }
 bool  sdt::append( std::vector<char>& d, const account_index& idx, const name_index& nidx ) 
@@ -75,14 +75,14 @@ bool  sdt::append( std::vector<char>& d, const account_index& idx, const name_in
 
 bool sdt::get_public_key_t( const std::string& name, public_key_t& pk )
 {
-    slog( "%1%", name );
+//    slog( "%1%", name );
     uint64_t nidx = get_last_name_edit_index(name);
     if( nidx == -1 )
     {
-        wlog( "last_name_edit_map.find(%1%) == end", name );
+//        wlog( "last_name_edit_map.find(%1%) == end", name );
         return false;
     }
-    slog( "%1% found at %2%", name, nidx );
+    //slog( "%1% found at %2%", name, nidx );
     state_record r;
     if( !get_record( nidx, r ) )
     {
@@ -218,7 +218,7 @@ uint64_t sdt::get_balance( const std::string& account, const std::string& type, 
     uint64_t itr = get_last_transfer_index( account_key(aidx,tidx) );
     if( itr == uint64_t(-1) )
     {
-        slog( "balance is NULL" );
+//        slog( "balance is NULL" );
         if( is_null ) 
             *is_null = true;
         if( loc ) 
@@ -250,7 +250,7 @@ uint64_t sdt::get_balance( const std::string& account, const std::string& type, 
 }
 void  sdt::transfer_balance( const std::string& from, const std::string& to, const std::string& type, uint64_t amnt, uint64_t trx_pos )
 {
-    slog( "transfer from %1% to %2%  %3% %4%", from, to, amnt, type );
+    //slog( "transfer from %1% to %2%  %3% %4%", from, to, amnt, type );
     transfer_log  tl;
     tl.from_name = get_name_index(from);    
     tl.to_name   = get_name_index(to);    
@@ -260,7 +260,7 @@ void  sdt::transfer_balance( const std::string& from, const std::string& to, con
     tl.new_from_bal = get_balance( from, type, 0, &tl.last_from_trx );
     tl.new_to_bal   = get_balance( to, type, 0, &tl.last_to_trx );
     tl.trx_idx = trx_pos;
-    wlog( "\n\n ==========>   tl trx_idx = %1%", tl.trx_idx );
+    //wlog( "\n\n ==========>   tl trx_idx = %1%", tl.trx_idx );
 
     if( tl.new_from_bal < amnt )
         THROW_GPM_EXCEPTION( "Insufficent '%1%' in account '%2%',  '%3%' available, " 
@@ -282,7 +282,7 @@ sdt::transfer sdt::get_last_transfer( const std::string& account, const std::str
 }
 void sdt::issue( const std::string& type, uint64_t trx_pos  )
 {
-    slog( "issue %1%", type ); 
+  //  slog( "issue %1%", type ); 
     transfer_log  tl;
     tl.type_name = get_name_index(type);    
     tl.to_name   = get_name_index(type);    
@@ -310,7 +310,7 @@ void sdt::issue( const std::string& type, uint64_t trx_pos  )
 bool sdt::apply( const signed_transaction& trx, const std::string& gen_name )
 {
     uint64_t trx_pos = size();
-    wlog( "utc time %1%", trx.trx.utc_time );
+//    wlog( "utc time %1%", trx.trx.utc_time );
     append_record( start_trx( boost::rpc::raw::hash_sha1( trx.trx),  trx.trx.utc_time ) );
 
     const std::vector<command>& cmds = trx.trx.commands;
@@ -318,7 +318,6 @@ bool sdt::apply( const signed_transaction& trx, const std::string& gen_name )
     {
         if( cmds[i].id == cmd::register_name::id )
         {
-            slog( "register name?" );
             cmd::register_name rn = cmds[i];
 
             if( rn.name == encode_address( rn.pub_key ) )
@@ -330,7 +329,6 @@ bool sdt::apply( const signed_transaction& trx, const std::string& gen_name )
                 public_key_t pub_key;
                 if( get_public_key_t( rn.name, pub_key ) )
                 {
-                    slog( "verify" );
                     if( !trx.verify( pub_key ) )
                     {
                         elog( "Unable to apply transaction because it was not signed by current holder of name %1%", rn.name );
@@ -340,7 +338,6 @@ bool sdt::apply( const signed_transaction& trx, const std::string& gen_name )
                 }
                 else
                 {
-                    slog( "set pub key" );
                     set_public_key( rn.name, rn.pub_key );
                 }
             }
@@ -511,7 +508,7 @@ boost::rpc::sha1_hashcode sdt::calculate_state_hash()
         ds.write( &tmp.front(), r );
         hashes.push_back(ds.result());
     }
-    slog( "size: %1% ", size() );
+    //slog( "size: %1% ", size() );
     
     return boost::rpc::raw::hash_sha1(hashes);
 }
@@ -519,7 +516,6 @@ boost::rpc::sha1_hashcode sdt::calculate_state_hash()
 
 bool sdt::commit()
 {
-    slog( "commit %1%", this );
     if( base ) 
         base->append( local_changes, last_transfer_map, last_name_edit_map );
     local_changes.clear();
@@ -536,7 +532,6 @@ void sdt::abort()
 
 block sdt::find_last_block()
 {
-   slog( "size: %1%", size() );
    if( size() < 8 )
         return block();
 
@@ -552,7 +547,7 @@ block sdt::find_last_block()
    if( r.id == end_block::id )
    {
         end_block eb = r;
-        wlog( "last known block %1%", boost::rpc::to_json( eb )  );
+//        wlog( "last known block %1%", boost::rpc::to_json( eb )  );
         return eb.blk;
    }
    return block();

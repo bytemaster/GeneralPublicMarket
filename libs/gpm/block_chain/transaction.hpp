@@ -21,6 +21,10 @@ namespace gpm {
     */
    struct signed_transaction
    {
+        bool operator < ( const signed_transaction& strx )const
+        {
+            return trx.utc_time < strx.trx.utc_time;
+        }
         transaction                   trx;
         std::vector<gpm::signature_t> sigs;
         void sign( const gpm::private_key_t& pk )

@@ -14,30 +14,24 @@ namespace gpm {
     {
         if( msg.id == proto::report_transaction::id )
         {
-            slog( "received transaction" );
-            proto::report_transaction at;
-            at = msg;
-
-            // TODO: temp disable add trx signal to prevent reverse send
-            //       This needs to be done in main because this method is async
-            // exec in the node thread... 
-            m_node->exec( boost::bind( &node::add_transaction, m_node, at.trx ) );
+//            slog( "received transaction" );
+            m_node->exec( boost::bind( &connection::add_transaction, this, msg) );
         }
         else if( msg.id == proto::get_full_block::id )
         {
-            slog( "received full block request" );
+//            slog( "received full block request" );
             proto::get_full_block gfb;
             gfb = msg;
             m_node->exec( boost::bind( &connection::get_full_block, this, gfb.index ) );
         }
         else if( msg.id == proto::get_head_block_index::id )
         {
-            slog( "received get_head_block_index request" );
+//            slog( "received get_head_block_index request" );
             m_node->exec( boost::bind( &connection::get_head_block_index, this ) );
         }
         else if( msg.id == proto::report_full_block::id )
         {
-            slog( "received report full block" );
+//            slog( "received report full block" );
             m_node->exec( boost::bind( &connection::add_full_block, this, msg ) );
         }
         else
@@ -55,13 +49,17 @@ namespace gpm {
         new_block_con.unblock();
     }
 
-
+    void connection::add_transaction( const proto::report_transaction& at )
+    {
+        new_trx_con.block();
+        m_node->add_transaction( at.trx );
+        new_trx_con.unblock();
+    }
 
     void connection::get_full_block(int32_t index)
     {
-        slog( "get full block %1%", index );
         try {
-       send_message( proto::report_full_block( m_node->get_full_block( index ) ) );
+           send_message( proto::report_full_block( m_node->get_full_block( index ) ) );
         } 
         catch ( const boost::exception& e )
         {
@@ -71,8 +69,7 @@ namespace gpm {
     // called via node->exec()
     void connection::get_head_block_index()
     {
-        slog( "" );
-       send_message( proto::report_head_block_index( m_node->get_head_block_index() ) );
+        send_message( proto::report_head_block_index( m_node->get_head_block_index() ) );
     }
 
     void connection::send_message( const proto::message& msg )
@@ -89,6 +86,7 @@ namespace gpm {
         delete data;
         if( err )
         {
+            closed();
             elog( "Error writing data..." );
         }
     }
@@ -105,10 +103,11 @@ namespace gpm {
 
     void connection::read_message( int state, const boost::system::error_code& ec, size_t bytes_read )
     {
-        slog( "state: %1% read %2%", state, bytes_read );
+        //slog( "state: %1% read %2%", state, bytes_read );
         if( ec )
         {
             elog( "Error processing message: %1%", boost::system::system_error(ec).what() );
+            closed();
             return;
         }
         switch( state )
@@ -120,7 +119,6 @@ namespace gpm {
                                                       boost::asio::placeholders::bytes_transferred ) );
                return;
             case 1: // then read the size
-                slog( "   msg.id: %1%", msg.id ); 
                 boost::asio::async_read( sock, boost::asio::buffer( (char*)&msg_size, sizeof(msg_size) ),
                                          boost::bind( &connection::read_message, this, state + 1, 
                                                       boost::asio::placeholders::error, 
@@ -128,7 +126,6 @@ namespace gpm {
 
                 return;
             case 2: // then read the data
-                slog( "   msg_size: %1%", msg_size ); 
                 msg.data.resize(msg_size);
                 boost::asio::async_read( sock, boost::asio::buffer( msg.data ),
                                          boost::bind( &connection::read_message, this, state + 1, 

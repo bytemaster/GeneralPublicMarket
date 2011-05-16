@@ -120,7 +120,7 @@ int main( int argc, char** argv )
             if( cmd == "exit" )
             {
                 wlog( "exit!" );
-                app.quit();
+                get_node()->configure_generation( "", false );
                 done = true;
                 continue; 
             }
@@ -138,13 +138,13 @@ int main( int argc, char** argv )
                 std::cout << "balance  account stock          - print the balance of the account\n";
                 std::cout << "register  name                  - generates a pub/priv key and r \n";
                 std::cout << "address_of name                 - generates a pub/priv key and r \n";
-                std::cout << "genkey [alias]                  - generates a key";
-                std::cout << "list_keys                       - lists keys";
-                std::cout << "dump start len                  - dump trx";
+                std::cout << "genkey [alias]                  - generates a key\n";
+                std::cout << "list_keys                       - lists keys\n";
+                std::cout << "dump start len                  - dump trx\n";
             }
             else if( cmd == "ln" )
             {
-                std::cerr<<"ln: not implemented\n";
+                std::cout<<"ln: not implemented\n";
             }
             else if( cmd == "contents" )
             {
@@ -170,14 +170,14 @@ int main( int argc, char** argv )
             {
                 std::string name;
                 ss >> name;
-                std::cerr << "address_of( " << name << ") == " << encode_address( get_node()->get_public_key_t( name ) ) << std::endl; 
+                std::cout << "address of '" << name << "' is " << encode_address( get_node()->get_public_key_t( name ) ) << std::endl; 
             }
             else if( cmd == "list_keys" )
             {
                 keychain::iterator itr = keychain::get_default().begin();
                 while( !itr.end() )
                 {
-                    std::cerr << itr.key().address << "  '" << itr.value().alias << "'\n";
+                    std::cout << itr.key().address << "  '" << itr.value().alias << "'\n";
                     ++itr;
                 }
             }
@@ -285,7 +285,6 @@ int main( int argc, char** argv )
             else if( cmd == "commit" )
             {
                 trx.trx.utc_time = gpm::utc_clock();
-                wlog( "us_time %1%", trx.trx.utc_time );
                 if( sign(trx, n) )
                     n->add_transaction( trx );
                 else
@@ -301,8 +300,6 @@ int main( int argc, char** argv )
                 elog( "Unknown command '%1%'", line );
             }
         }
-        
-        //app.exec();
     } 
     catch ( const boost::exception& e )
     {

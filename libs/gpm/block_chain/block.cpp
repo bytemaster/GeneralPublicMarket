@@ -225,7 +225,7 @@ bool              save( const boost::filesystem::path& p, const block_chain& bc 
     std::vector<char> data;
     boost::rpc::raw::pack( data, bc );
 
-    dlog( "saving block chain size %1%", data.size() );
+    //dlog( "saving block chain size %1%", data.size() );
     gpm::bigint hc;
 
     FILE* f = fopen(p.native_file_string().c_str(), "wb" );

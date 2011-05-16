@@ -59,15 +59,34 @@ namespace gpm {
             report_head_block_index( int32_t i = 0):index(i){}
             int32_t index;
         };
+
+        struct report_block_chain
+        {
+            enum id_enum { id = 0x06 };
+            report_block_chain( const block_chain& bc = block_chain() ):chain(bc){}
+            block_chain  chain;
+        };
+
+        struct request_block_chain
+        {
+            enum id_enum { id = 0x07 };
+            request_block_chain( uint32_t s = 0, uint32_t e = -1 )
+            :start(s),end(e){}
+
+            uint32_t start;
+            uint32_t end;
+        };
     } // namespace proto
  } // namespace gpm
 
  BOOST_REFLECT( gpm::proto::message,                 BOOST_PP_SEQ_NIL, (id)(data) )
- BOOST_REFLECT( gpm::proto::report_transaction,         BOOST_PP_SEQ_NIL, (trx) )
+ BOOST_REFLECT( gpm::proto::report_transaction,      BOOST_PP_SEQ_NIL, (trx) )
  BOOST_REFLECT( gpm::proto::get_full_block,          BOOST_PP_SEQ_NIL, (index) )
  BOOST_REFLECT( gpm::proto::report_full_block,       BOOST_PP_SEQ_NIL, (state) )
  BOOST_REFLECT( gpm::proto::get_head_block_index,    BOOST_PP_SEQ_NIL, BOOST_PP_SEQ_NIL )
  BOOST_REFLECT( gpm::proto::report_head_block_index, BOOST_PP_SEQ_NIL, (index) )
+ BOOST_REFLECT( gpm::proto::report_block_chain,      BOOST_PP_SEQ_NIL, (chain) )
+ BOOST_REFLECT( gpm::proto::request_block_chain,     BOOST_PP_SEQ_NIL, (start)(end) )
 
 
 
