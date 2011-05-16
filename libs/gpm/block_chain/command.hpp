@@ -53,6 +53,55 @@ namespace gpm {
             sha1_hashcode   to_name; // if 0, then dest == generator
             sha1_hashcode   signed_name; // must have delegated authority of from_name
         };
+
+        /**
+         *  A bid is an offer to exchange a certain amount of one stock
+         *  for a certain amount of another stock.
+         *
+         *  A bid is valid so long as it was signed by the offer account's 
+         *  private key.  When the balance goes to 0, the bid is worthless.
+         *
+         *  To place a bid you would:
+         *      create a new account (random name), transfer a multiple of offer_amount of offer_stock to account
+         *      specify the amount of request stock you wish to exchage for the ammount of offer stock.
+         *      Sign all values with the offer account private key
+         *
+         *  A bid is nothing without a counter-party
+         */
+        struct bid
+        {
+            std::string        offer_account;        
+            std::string        offer_stock;
+            uint64_t           offer_amount;
+            std::string        request_stock;
+            uint64_t           request_amount;
+            sha1_hashcode      offer_account_signature;
+        };
+
+        /**
+         *  If you have a signed bid with an available ballance then
+         *  an accept_bid command can be used to fufill the order.
+         *
+         *  Assuming the command is signed by account, then
+         *
+         *  count * the_bid.request_amount of request_stock  will be transfered
+         *  from account to offer account.
+         *
+         *  AND
+         *
+         *  count * the_bid.offer_amount of the_bid.offer_stock  will be transfered
+         *  from the_bid.offer_account to account.
+         *
+         */
+        struct accept_bid
+        {
+            enum id_enum{ id = 0x05 };
+            bid             the_bid;
+            std::string     account;
+            uint64_t        count;
+        };
+
+
     };
 
     struct command

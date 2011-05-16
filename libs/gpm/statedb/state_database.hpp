@@ -36,9 +36,9 @@ namespace gpm {
 
     struct state_record
     {
-        uint16_t          id;
-        std::vector<char> data;
-        uint64_t          previous;
+        uint16_t          id;       // the type of record
+        std::vector<char> data;     // data to be stored 
+        uint64_t          previous; // location of previous record (reverse linked list, aka block chain)
 
         state_record():id(0),previous(0){}
 
