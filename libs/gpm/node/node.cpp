@@ -738,49 +738,55 @@ int node::add_block( const block& blk )
     }
     else if( blk.prev_block == my->m_block_chain.back().prev_block )
     {
-        block old_head = my->m_block_chain.back();
-        my->m_block_chain.back() = blk;
-        if( validate( my->m_block_chain ) )
+        sha1_hashcode old_head_hash = boost::rpc::raw::hash_sha1( my->m_block_chain.back() );
+        sha1_hashcode new_head_hash = boost::rpc::raw::hash_sha1( blk );
+        if( new_head_hash < old_head_hash )
         {
-            state_database_transaction::ptr trx( new state_database_transaction( my->m_state_db ) );
 
-            std::vector<boost::rpc::sha1_hashcode> old_head_trx = my->get_head_transactions();
-            my->move_transactions( old_head_trx, HEAD_TRX, PENDING_TRX );
-
-
-            std::vector<signed_transaction> strxs = my->get_transactions((*bs).signed_transactions, PENDING_TRX);
-            if( strxs.size() != bs->signed_transactions.size() )
+            block old_head = my->m_block_chain.back();
+            my->m_block_chain.back() = blk;
+            if( validate( my->m_block_chain ) )
             {
-                elog( "Unable to find all required transactions in the pending state." );
-            }
-            else if( trx->apply( blk, (*bs).generator_name, strxs, (*bs).state_db ) )
-            {
-                my->move_transactions((*bs).signed_transactions, PENDING_TRX, HEAD_TRX );
-                my->m_head_trx = trx;
-                my->m_gen_trx   = state_database_transaction::ptr( new state_database_transaction( my->m_head_trx ) );
+                state_database_transaction::ptr trx( new state_database_transaction( my->m_state_db ) );
 
-                full_block_state fbs;
-                fbs.index = my->m_block_chain.size()-1;
-                fbs.head_index = my->m_block_chain.size()-1;
-                fbs.trxs = strxs;
-                fbs.blk = blk;
-                fbs.blk_state = *bs;
+                std::vector<boost::rpc::sha1_hashcode> old_head_trx = my->get_head_transactions();
+                my->move_transactions( old_head_trx, HEAD_TRX, PENDING_TRX );
 
-                std::cout<<"Replacing head with lower hash...\n";
-                my->dump( my->m_block_chain, my->m_block_chain.size()-1, 1);
 
-                new_block( fbs );
-                if( my->m_gen_enabled )
-                    my->start_block();
-                return 1;
+                std::vector<signed_transaction> strxs = my->get_transactions((*bs).signed_transactions, PENDING_TRX);
+                if( strxs.size() != bs->signed_transactions.size() )
+                {
+                    elog( "Unable to find all required transactions in the pending state." );
+                }
+                else if( trx->apply( blk, (*bs).generator_name, strxs, (*bs).state_db ) )
+                {
+                    my->move_transactions((*bs).signed_transactions, PENDING_TRX, HEAD_TRX );
+                    my->m_head_trx = trx;
+                    my->m_gen_trx   = state_database_transaction::ptr( new state_database_transaction( my->m_head_trx ) );
+
+                    full_block_state fbs;
+                    fbs.index = my->m_block_chain.size()-1;
+                    fbs.head_index = my->m_block_chain.size()-1;
+                    fbs.trxs = strxs;
+                    fbs.blk = blk;
+                    fbs.blk_state = *bs;
+
+                    std::cout<<"Replacing head with lower hash...\n";
+                    my->dump( my->m_block_chain, my->m_block_chain.size()-1, 1);
+
+                    new_block( fbs );
+                    if( my->m_gen_enabled )
+                        my->start_block();
+                    return 1;
+                }
+                else
+                    elog( "Error applying transactions." );
+                my->move_transactions( old_head_trx, PENDING_TRX, HEAD_TRX );
             }
             else
-                elog( "Error applying transactions." );
-            my->move_transactions( old_head_trx, PENDING_TRX, HEAD_TRX );
+                elog( "Error validating chain." );
+            my->m_block_chain.back() = old_head;
         }
-        else
-            elog( "Error validating chain." );
-        my->m_block_chain.back() = old_head;
         return -3;
     }
     else
