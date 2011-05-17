@@ -104,9 +104,9 @@ void AccountTableModel::addAccount( const QString& text )
         pref.setValue( text + "/index", int(get_known_names().size()) );
         pref.sync();
         beginResetModel();
-        rout( status, "known names size: %1%", %get_known_names().size() );
+        slog( "known names size: %1%", get_known_names().size() );
         get_known_names().push_back(text.toStdString());
-        rout( status, "known names size: %1%", %get_known_names().size() );
+        slog( "known names size: %1%", get_known_names().size() );
         endResetModel();
     }
     pref.endGroup();

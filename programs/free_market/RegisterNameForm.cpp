@@ -1,9 +1,9 @@
 #include "RegisterNameForm.hpp"
 #include "ui_register_name.h"
 #include "keychain.hpp"
-#include <dtdb/block.hpp>
-#include <dtdb/node.hpp>
-const boost::shared_ptr<dtdb::node>& get_node()
+#include <gpm/block_chain/block.hpp>
+#include <gpm/node/node.hpp>
+const boost::shared_ptr<gpm::node>& get_node()
 ;
 RegisterNameForm::RegisterNameForm( QWidget* parent, const QString& label )
 :QWidget(parent)
@@ -19,18 +19,18 @@ RegisterNameForm::RegisterNameForm( QWidget* parent, const QString& label )
 
 void RegisterNameForm::newKey()
 {
-    dtdb::public_key pub;
-    dtdb::private_key priv;
+    gpm::public_key_t pub;
+    gpm::private_key_t priv;
 
     std::string gen = generate_address( pub, priv );
 
-    get_keychain().set( encode_address(pub), dtdb::key_info( pub, priv ) );
+    get_keychain().set( encode_address(pub), gpm::key_info( pub, priv ) );
     get_keychain().sync();
 
     m_ui->key_name->insertItem( 0, gen.c_str() );
 }
 
-dtdb::public_key get_public_key( const std::string& name )
+gpm::public_key_t get_public_key( const std::string& name )
 {
     if( false /* is base64 encoded name */ )
     {
@@ -38,16 +38,16 @@ dtdb::public_key get_public_key( const std::string& name )
     }
     else
     {
-        dtdb::public_key pub;
+        gpm::public_key_t pub;
         get_node()->get_key_for_name( name, pub );
         return pub;
     }
 }
 
-void RegisterNameForm::createCommand( dtdb::command& cmd )const
+void RegisterNameForm::createCommand( gpm::command& cmd )const
 {
     std::string name = m_ui->name->currentText().toStdString();
-    cmd = dtdb::cmd::register_name( name, get_public_key( m_ui->key_name->currentText().toStdString() ) );
+    cmd = gpm::cmd::register_name( name, get_public_key( m_ui->key_name->currentText().toStdString() ) );
 }
 
 std::vector<std::string> RegisterNameForm::getErrors()const

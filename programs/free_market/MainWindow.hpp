@@ -1,7 +1,7 @@
 #ifndef _MAINWINDOW_HPP_
 #define _MAINWINDOW_HPP_
 #include <QMainWindow>
-#include <dtdb/node.hpp>
+#include <gpm/node/node.hpp>
 #include <QItemSelection>
 #include "keychain.hpp"
 

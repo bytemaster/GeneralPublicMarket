@@ -1,6 +1,5 @@
 #include "TrxTableModel.hpp"
 #include <boost/date_time/posix_time/posix_time.hpp>
-#include <fl/scheduler/usclock.hpp>
 
 TrxTableModel::TrxTableModel( QObject* p )
 :QAbstractTableModel(p)
@@ -26,6 +25,16 @@ int TrxTableModel::rowCount( const QModelIndex& p )const
     return m_trx_log.size();
 }
 
+/*
+template<typename T>
+std::string to_string( const T& v )
+{
+    std::stringstream ss; 
+    ss<<v;
+    return v.str();
+}
+*/
+
 QVariant TrxTableModel::data( const QModelIndex& i, int role )const
 {
     static boost::posix_time::ptime epoch(boost::gregorian::date(1970, boost::gregorian::Jan, 1));
@@ -47,7 +56,7 @@ QVariant TrxTableModel::data( const QModelIndex& i, int role )const
             case 3:
                  return  m_trx_log[i.row()].from == m_acnt ? m_trx_log[i.row()].from_bal  : m_trx_log[i.row()].to_bal;
             case 4:
-                 return QString( fl::to_string( (epoch + boost::posix_time::seconds(m_trx_log[i.row()].date/1000000) ) ).c_str() );
+                 return QString( to_string( (epoch + boost::posix_time::seconds(m_trx_log[i.row()].date/1000000) ) ).c_str() );
 
         }
     }

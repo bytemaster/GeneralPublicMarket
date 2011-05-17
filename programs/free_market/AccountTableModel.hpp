@@ -2,7 +2,7 @@
 #define _ACCOUNT_TABLE_MODEL_HPP
 #include <QAbstractTableModel>
 #include <vector>
-#include <dtdb/node.hpp>
+#include <gpm/node/node.hpp>
 #include "keychain.hpp"
 
 

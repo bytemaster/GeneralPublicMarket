@@ -144,9 +144,8 @@ namespace gpm {
       int                      add_full_block( const full_block_state& fbs );
 
       boost::signal<void(const std::string&)>                new_name;
-
-      boost::signal<void(const signed_transaction&)>          new_transaction;
-      boost::signal<void(const full_block_state& )>           new_block;
+      boost::signal<void(const signed_transaction&)>         new_transaction;
+      boost::signal<void(const full_block_state& )>          new_block;
 
     private:
       friend class node_private;

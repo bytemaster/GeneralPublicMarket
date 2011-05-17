@@ -10,7 +10,7 @@ TransferForm::TransferForm( QWidget* w )
 
     connect( m_ui->from, SIGNAL( currentIndexChanged( const QString& ) ),
              this, SLOT( currentFromChanged( const QString& ) ) );
-    boost::shared_ptr<dtdb::node> n = get_node();
+    boost::shared_ptr<gpm::node> n = get_node();
     std::vector<std::string>& names= get_known_names();
     for( uint32_t i = 0; i < names.size(); ++i )
     {
@@ -25,7 +25,7 @@ TransferForm::TransferForm( QWidget* w )
 void TransferForm::currentFromChanged( const QString& txt )
 {
     m_ui->what->clear();
-    fl::vector16<fl::pstring8> ct = get_node()->get_account_contents( txt.toStdString() );
+    std::vector<std::string> ct = get_node()->get_account_contents( txt.toStdString() );
     for( uint32_t i = 0; i < ct.size(); ++i )
     {
         uint64_t b = get_node()->get_balance(txt.toStdString(), ct[i] ); 
@@ -33,9 +33,9 @@ void TransferForm::currentFromChanged( const QString& txt )
         txt += " (" + QString::number(b) + ")";
         m_ui->what->addItem( txt );
     }
-    requiredSignaturesChanged.emit();
+    requiredSignaturesChanged();
 }
-void TransferForm::createCommand( dtdb::command& cmd )const
+void TransferForm::createCommand( gpm::command& cmd )const
 {
 
 }

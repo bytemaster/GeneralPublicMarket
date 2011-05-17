@@ -7,6 +7,8 @@
 #include <QInputDialog>
 #include <QMessageBox>
 #include "TransactionEditor.hpp"
+#include <boost/rpc/json.hpp>
+#include <gpm/crypto/crypto.hpp>
 
 
 
@@ -90,7 +92,7 @@ void MainWindow::newAccount()
                  "", &ok);
     if (ok && !text.isEmpty())
     {
-        dtdb::public_key old_public_key;
+        gpm::public_key_t old_public_key;
         std::string n(text.toStdString());
         if( !get_node()->get_key_for_name( n, old_public_key ) )
         {
@@ -156,8 +158,8 @@ void MainWindow::configureGeneration()
 
 void MainWindow::contentSelectionChanged( const QItemSelection & selected, const QItemSelection & deselected )
 {
-    rout( warn, "content selection changed." );
-    std::vector<dtdb::trx_log> trx_log;
+    slog( "content selection changed." );
+    std::vector<gpm::trx_log> trx_log;
     for( uint32_t i = 0; i < selected.indexes().size(); ++i )
     {
         //rout( status, "selected  %1% %2%", %selected.indexes()[i].row()  %m_node->get_name( selected.indexes()[i].row() ) );
@@ -168,13 +170,12 @@ void MainWindow::contentSelectionChanged( const QItemSelection & selected, const
 }
 void MainWindow::accountSelectionChanged( const QItemSelection & selected, const QItemSelection & deselected )
 {
-    rout( status, "" );
     std::vector<std::pair<QString,uint64_t> > names;
     for( uint32_t i = 0; i < selected.indexes().size(); ++i )
     {
         //rout( status, "selected  %1% %2%", %selected.indexes()[i].row()  %m_node->get_name( selected.indexes()[i].row() ) );
-        fl::vector16<fl::pstring8> ct = get_node()->get_account_contents( atm->getName(selected.indexes()[i].row()) );
-        rout( status, "%1%", %fl::to_json(ct) );
+        std::vector<std::string> ct = get_node()->get_account_contents( atm->getName(selected.indexes()[i].row()) );
+        slog( "%1%", boost::rpc::to_json(ct) );
         for( uint32_t t = 0; t < ct.size();++t )
         {
             names.push_back( std::make_pair( QString( ct[t].c_str() ), 

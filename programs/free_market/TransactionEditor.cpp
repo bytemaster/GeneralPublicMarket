@@ -2,6 +2,7 @@
 #include "CommandEditor.hpp"
 #include "ui_transaction_edit.h"
 #include <QCheckBox>
+#include <boost/bind.hpp>
 
 TransactionEditor::TransactionEditor( QWidget* parent )
 :QWidget(parent)
@@ -37,9 +38,9 @@ void TransactionEditor::addCommand()
 
 void TransactionEditor::updateSignatures()
 {
-    rout( status, "Update Signatures" );
+    slog( "Update Signatures" );
     std::vector<std::string> req_sigs;
-    std::vector<dtdb::command> m_cmds(ui->command_layout->count() );
+    std::vector<gpm::command> m_cmds(ui->command_layout->count() );
     for( uint32_t i = 0; i < ui->command_layout->count(); ++i )
     {
         AbstractCommandForm* acf = dynamic_cast<AbstractCommandForm*>(ui->command_layout->itemAt(i)->widget());
@@ -50,7 +51,7 @@ void TransactionEditor::updateSignatures()
         }
         else
         {
-            rout( err, "item not AbstractCommandForm" );
+            elog( "item not AbstractCommandForm" );
         }
     }
     for( uint32_t i = 0; i < ui->sig_layout->count(); ++i )
@@ -63,6 +64,6 @@ void TransactionEditor::updateSignatures()
     {
         QCheckBox* cb = new QCheckBox( req_sigs[i].c_str(), this ); 
         ui->sig_layout->addWidget(cb);
-        rout( status, "Signatures %1%", %req_sigs[i] );
+        slog("Signatures %1%", req_sigs[i] );
     }
 }

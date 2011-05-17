@@ -15,11 +15,11 @@ class CommandEditor : public QWidget, virtual public AbstractCommandForm
     public:
         CommandEditor( QWidget* parent );
 
-        virtual void createCommand( dtdb::command& cmd )const          { return m_cur->createCommand(cmd);      }
+        virtual void createCommand( gpm::command& cmd )const          { return m_cur->createCommand(cmd);      }
         virtual std::vector<std::string> getErrors()const              { return m_cur->getErrors();             }
         virtual std::vector<std::string> getRequiredSignatures()const  { return m_cur->getRequiredSignatures(); }
 
-        fl::signal<void()> requiredSignaturesChanged;
+        boost::signal<void()> requiredSignaturesChanged;
 
     public Q_SLOTS:
         void commandChanged( int index );

@@ -11,7 +11,7 @@ class RegisterNameForm : public QWidget, virtual public AbstractCommandForm
     public:
         RegisterNameForm( QWidget* w, const QString& label = "with key" );
 
-        void createCommand( dtdb::command& cmd )const;
+        void createCommand( gpm::command& cmd )const;
         std::vector<std::string> getErrors()const;
         std::vector<std::string> getRequiredSignatures()const;
     

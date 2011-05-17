@@ -3,6 +3,7 @@
 #include <boost/rpc/datastream/sha1.hpp>
 #include <gpm/exception.hpp>
 #include <gpm/crypto/crypto.hpp>
+#include <boost/rpc/raw.hpp>
 
 namespace gpm {
 

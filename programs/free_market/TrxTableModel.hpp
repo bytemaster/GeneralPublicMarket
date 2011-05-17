@@ -2,7 +2,7 @@
 #define _TRX_TABLE_MODEL_HPP
 #include <QAbstractTableModel>
 #include <vector>
-#include <dtdb/node.hpp>
+#include <gpm/node/node.hpp>
 
 class TrxTableModel : public QAbstractTableModel
 {
@@ -18,7 +18,7 @@ class TrxTableModel : public QAbstractTableModel
         QVariant headerData(int section, Qt::Orientation orientation, int role) const;
 //        Qt::ItemFlags flags(const QModelIndex &index) const;
 
-        void setTrxLog( const std::string& acnt, const std::vector<dtdb::trx_log>& tl )
+        void setTrxLog( const std::string& acnt, const std::vector<gpm::trx_log>& tl )
         {
             beginResetModel();
             m_acnt = acnt;
@@ -27,7 +27,7 @@ class TrxTableModel : public QAbstractTableModel
         }
         private:
             std::string           m_acnt;
-            std::vector<dtdb::trx_log>  m_trx_log;
+            std::vector<gpm::trx_log>  m_trx_log;
 //    private:
 //        std::vector<std::pair<QString,uint64_t> > m_names;
 

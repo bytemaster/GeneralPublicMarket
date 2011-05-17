@@ -11,7 +11,7 @@ class IssueForm : public QWidget, virtual public AbstractCommandForm
     public:
         IssueForm( QWidget* parent );
 
-        void createCommand( dtdb::command& cmd )const;
+        void createCommand( gpm::command& cmd )const;
         std::vector<std::string> getErrors()const;
         std::vector<std::string> getRequiredSignatures()const;
 

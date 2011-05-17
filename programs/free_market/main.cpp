@@ -3,7 +3,6 @@
 #include <QtConcurrentRun>
 #include <gpm/time/usclock.hpp>
 
-//#include <gpm/client.hpp>
 #include <gpm/bdb/keyvalue_db.hpp>
 #include <gpm/node/server.hpp>
 
@@ -11,7 +10,7 @@
 #include <QDir>
 #include <QApplication>
 #include "keychain.hpp"
-//#include <gui/MainWindow.hpp>
+#include "MainWindow.hpp"
 
 
 using namespace gpm;
@@ -42,8 +41,8 @@ int main( int argc, char** argv )
     QCoreApplication::setOrganizationDomain("virtualventures.com");
     QCoreApplication::setApplicationName("Free Market");
 
- //   MainWindow* mw = new MainWindow();
- //   mw->show();
+    MainWindow* mw = new MainWindow();
+    mw->show();
 
     try {
         std::string gen_name("none" );
@@ -77,29 +76,14 @@ int main( int argc, char** argv )
             return 0;
         }
     
-//        bb::network_ptr net( new bb::network() );
-//        wlog( "Backbone network: %1%", %backbone_network );
-//        net->join_network( fl::udp_endpoint_from_string( backbone_network ) );
-
-//        bb::server_ptr rd_server( new bb::server( get_node(), urn) );
-//        net->add_server(rd_server);
-
-
-        //keychain::ptr keyc( new keychain() ); // NULL, "keychain.db", "keychain" );
-        //name_key_map::ptr nkm( new name_key_map() ); // NULL, "keychain.db", "keychain" );
         get_keychain().open( keys );
-        //nkm->open( "name_key_map.db" );
         get_node()->open( data_dir, true );
-
-//        gpm::client* c = new gpm::client( get_node(), net );
 
         gpm::server server(get_node(), server_port);
         for( uint32_t i = 0; i < clients.size(); ++i )
             server.connect_to( clients[i] );
 
         boost::shared_ptr<node> n = get_node();
-
-
 
         bool done = false;
         gpm::signed_transaction trx;
@@ -136,8 +120,8 @@ int main( int argc, char** argv )
                 std::cout << "ln                              - list all names\n";
                 std::cout << "contents account                - list all balances in account\n";
                 std::cout << "balance  account stock          - print the balance of the account\n";
-                std::cout << "register  name                  - generates a pub/priv key and r \n";
-                std::cout << "address_of name                 - generates a pub/priv key and r \n";
+                std::cout << "register  name  [address]       - generates a pub/priv key and r \n";
+                std::cout << "address_of name                 - displays the address of name\n";
                 std::cout << "genkey [alias]                  - generates a key\n";
                 std::cout << "list_keys                       - lists keys\n";
                 std::cout << "dump start len                  - dump trx\n";
@@ -197,7 +181,9 @@ int main( int argc, char** argv )
             else if( cmd == "register" )
             {
                 std::string name;
+                std::string address;
                 ss >> name;
+                ss >> address;
 
                 gpm::public_key_t old_public_key_t;
                 gpm::private_key_t old_private_key_t;
@@ -227,6 +213,7 @@ int main( int argc, char** argv )
                     gpm::cmd::register_name reg;
                     reg.name = name;
 
+                    // TODO: if address is not NULL, then don't genrate the pub_key, look it up!
                     gpm::private_key_t priv;
                     gpm::key_info ki;
                     std::string addr = gpm::generate_address(ki.pub,ki.priv);

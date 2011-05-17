@@ -10,14 +10,14 @@ IssueForm::IssueForm( QWidget* parent )
     connect( m_ui->stock_name, SIGNAL( currentIndexChanged( const QString& ) ),
              this, SLOT( currentStockChanged( const QString& ) ) );
 }
-void IssueForm::createCommand( dtdb::command& cmd )const
+void IssueForm::createCommand( gpm::command& cmd )const
 {
 
 }
 
 void IssueForm::currentStockChanged( const QString& txt )
 {
-    requiredSignaturesChanged.emit();
+    requiredSignaturesChanged();
 }
 std::vector<std::string> IssueForm::getErrors()const
 {
