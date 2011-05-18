@@ -27,7 +27,6 @@ libs/gpm/block_chain/.command.hpp.swo
 libs/gpm/block_chain/.command.hpp.swp
 libs/gpm/block_chain/.transaction.hpp.swp
 libs/gpm/block_chain/CMakeFiles/
-libs/gpm/block_chain/CMakeLists.txt
 libs/gpm/block_chain/Makefile
 libs/gpm/block_chain/cmake_install.cmake
 libs/gpm/block_chain/gpm_block_chain_test
