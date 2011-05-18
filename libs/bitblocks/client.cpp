@@ -13,9 +13,12 @@
 #include <boost/rpc/super_fast_hash.hpp>
 #include <boost/rpc/base64.hpp>
 
-boost::asio::io_service::work*      the_work = 0;
-block_db&                get_blocks_db()    { static block_db blocks; return blocks; }
-boost::asio::io_service& main_ios()         { static boost::asio::io_service ioserv; return ioserv; }
+boost::asio::io_service::work*  the_work = 0;
+block_db&                       get_blocks_db()    { static block_db blocks; return blocks; }
+boost::asio::io_service&        main_ios()         { static boost::asio::io_service ioserv; return ioserv; }
+
+class client;
+client*                         gclient = 0;
 
 std::string import_file( const std::string& filename );
 void export_file( const std::string& key_hash );
@@ -142,8 +145,13 @@ void handle_line( const std::string& line )
     {
         std::string urn;
         ss >> urn;
-
         export_file( urn );
+    }
+    else if( cmd == "upload" )
+    {
+        std::string urn;
+        ss >> urn;
+        //upload_file( urn );
     }
     else
         std::cout << "unknown command '"<<cmd<<"'\n";
@@ -167,44 +175,45 @@ void handle_cli()
 int main( int argc, char** argv )
 {
     try {
-    std::string server_host_port;
-    std::string data_dir;
+        std::string server_host_port;
+        std::string data_dir;
 
-    namespace po = boost::program_options;
-    po::options_description desc("Allowed options");
-    desc.add_options()
-        ("help,h", "print this help message." )
-        ("server,s", po::value<std::string>(&server_host_port)->default_value("localhost:8000"), "Port to run server on." )
-        ("data_dir,d", po::value<std::string>(&data_dir)->default_value("client_bitblocks"), "Directory to store data" )
-    ;
+        namespace po = boost::program_options;
+        po::options_description desc("Allowed options");
+        desc.add_options()
+            ("help,h", "print this help message." )
+            ("server,s", po::value<std::string>(&server_host_port)->default_value("localhost:8000"), "Port to run server on." )
+            ("data_dir,d", po::value<std::string>(&data_dir)->default_value("client_bitblocks"), "Directory to store data" )
+        ;
 
-    po::variables_map vm;
-    po::store( po::parse_command_line(argc,argv,desc), vm );
-    po::notify(vm);
+        po::variables_map vm;
+        po::store( po::parse_command_line(argc,argv,desc), vm );
+        po::notify(vm);
 
-    if( vm.count("help") )
-    {
-        std::cout << desc << std::endl;
-        return 0;
-    }
-    if( !boost::filesystem::exists( data_dir ) )
-        boost::filesystem::create_directory( data_dir );
+        if( vm.count("help") )
+        {
+            std::cout << desc << std::endl;
+            return 0;
+        }
+        if( !boost::filesystem::exists( data_dir ) )
+            boost::filesystem::create_directory( data_dir );
 
-    boost::thread cli_thread(handle_cli);
+        boost::thread cli_thread(handle_cli);
 
-    get_blocks_db().open( data_dir + "/blocks.db" ); 
+        get_blocks_db().open( data_dir + "/blocks.db" ); 
 
-    // lookup server
-   
-    udp::resolver resolver(main_ios());
-    size_t pos = server_host_port.find( ':' );
-    udp::resolver::query q(udp::v4(), server_host_port.substr(0, pos), server_host_port.substr(pos+1) );
+        // lookup server
+       
+        udp::resolver resolver(main_ios());
+        size_t pos = server_host_port.find( ':' );
+        udp::resolver::query q(udp::v4(), server_host_port.substr(0, pos), server_host_port.substr(pos+1) );
 
-    client* c = new client( *resolver.resolve(q)  );
-    c->send_create_account();
+        client* c = new client( *resolver.resolve(q)  );
+        c->send_create_account();
+        gclient = c;
 
-    the_work = new boost::asio::io_service::work(main_ios());
-    main_ios().run();
+        the_work = new boost::asio::io_service::work(main_ios());
+        main_ios().run();
 
     } catch ( const boost::exception& e )
     {
@@ -215,6 +224,35 @@ int main( int argc, char** argv )
 
 
 
+/**
+ *  Start an async process to upload a URN
+ */
+void upload_file( const std::string& key_meta )
+{
+    int sep = key_meta.find( '_' );
+    std::string bf_key  = key_meta.substr(0,sep);
+    std::string meta    = key_meta.substr(sep+1);
+    std::string hash    = boost::rpc::base64_decode(meta);
+    sha1_hashcode hc; memcpy( hc.hash, hash.c_str(), hash.size() );
+
+    block b; 
+    if( !get_blocks_db().get( hc, b ) )
+    {
+        elog( "Unable to find meta block '%1%'", meta );
+    }
+
+    gpm::blowfish bf;
+    bf.start( (unsigned char*)bf_key.c_str(), bf_key.size() );
+    bf.decrypt( (unsigned char*)&b.data.front(), b.data.size() );
+    bf.reset_chain();
+
+    boost::shared_ptr<metafile>  mf(new metafile());
+    boost::rpc::raw::unpack( b.data, *mf );
+
+    slog( "Uploading file '%1%' of size '%2%' kb", mf->name, mf->size/1024 );
+
+    
+}
 
 
 
