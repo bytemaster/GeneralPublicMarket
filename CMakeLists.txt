@@ -30,6 +30,7 @@ LINK_DIRECTORIES( ${Boost_LIBRARY_DIRS} )
 
 
 ADD_SUBDIRECTORY( libs/gpm )
+ADD_SUBDIRECTORY( libs/bitblocks )
 ADD_SUBDIRECTORY( programs/free_market )
 
 

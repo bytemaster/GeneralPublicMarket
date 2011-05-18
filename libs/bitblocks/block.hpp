@@ -1,7 +1,7 @@
 #ifndef _BLOCK_HPP_
 #define _BLOCK_HPP_
-#include <boost/rpc/raw.hpp>
-#include <gpm/bdc/keyvalue_db.hpp>
+#include <boost/reflect/reflect.hpp>
+#include <bitblocks/keyvalue_db.hpp>
 
 using boost::rpc::sha1_hashcode;
 
@@ -19,7 +19,22 @@ struct user_id
 {
     uint32_t ip;
     uint16_t port;
+
+    bool operator > ( const user_id& r ) const {
+        return ip > r.ip  || (ip == r.ip &&  port > r.port );
+    }
+    bool operator == ( const user_id& r ) const {
+        return ip == r.ip  && ip == r.ip;
+    }
 };
+
+struct metafile {
+    metafile( const std::string& n = "" ):name(n){}
+    std::string name;
+    uint64_t    size;
+    std::vector<sha1_hashcode> blocks;
+};
+BOOST_REFLECT( metafile, BOOST_PP_SEQ_NIL, (name)(size)(blocks) )
 
 struct user_info
 {
@@ -37,7 +52,8 @@ struct user_info
     int64_t     balance()const { return  total_received + total_earned - total_spent - total_paid; } 
 };
 
-BOOST_IDL_REFLECT( block, BOOST_PP_SEQ_NIL, 
+
+BOOST_REFLECT( block, BOOST_PP_SEQ_NIL, 
     (publish_date)
     (last_request)
     (total_btc)
@@ -46,9 +62,9 @@ BOOST_IDL_REFLECT( block, BOOST_PP_SEQ_NIL,
     (data)
 )
 
-BOOST_IDL_REFLECT( user_id, BOOST_PP_SEQ_NIL, (ip)(port) )
+BOOST_REFLECT( user_id, BOOST_PP_SEQ_NIL, (ip)(port) )
 
-BOOST_IDL_REFLECT( user_info, BOOST_PP_SEQ_NIL, 
+BOOST_REFLECT( user_info, BOOST_PP_SEQ_NIL, 
     (created_utc)
     (last_recv_utc)
     (total_received)

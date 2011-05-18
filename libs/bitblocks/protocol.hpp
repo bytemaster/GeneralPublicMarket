@@ -8,9 +8,12 @@ using boost::rpc::sha1_hashcode;
 struct create_account
 {
     enum id_enum { id = 0x01 };
+    create_account( const std::string& btc_addr = std::string() )
+    :recv_btc_address(btc_addr){}
+
     std::string       recv_btc_address;  // account ID
 };
-BOOST_IDL_REFLECT( create_account, BOOST_PP_SEQ_NIL, (recv_btc_address) )
+BOOST_REFLECT( create_account, BOOST_PP_SEQ_NIL, (recv_btc_address) )
 
 struct account_created
 {
@@ -18,20 +21,20 @@ struct account_created
     std::string       recv_btc_address;  // account ID
     std::string       pay_btc_address;   // addres to fund
 };
-BOOST_IDL_REFLECT( account_created, BOOST_PP_SEQ_NIL, (recv_btc_address)(pay_btc_address) )
+BOOST_REFLECT( account_created, BOOST_PP_SEQ_NIL, (recv_btc_address)(pay_btc_address) )
 
 // close account and refund balance
 struct close_account
 {
     enum id_enum { id = 0x03 };
 };
-BOOST_IDL_REFLECT(close_account, BOOST_PP_SEQ_NIL, BOOST_PP_SEQ_NIL )
+BOOST_REFLECT(close_account, BOOST_PP_SEQ_NIL, BOOST_PP_SEQ_NIL )
 
 struct query_server_status
 {
     enum id_enum { id = 0x04 };
 };
-BOOST_IDL_REFLECT(query_server_status, BOOST_PP_SEQ_NIL, BOOST_PP_SEQ_NIL )
+BOOST_REFLECT(query_server_status, BOOST_PP_SEQ_NIL, BOOST_PP_SEQ_NIL )
 
 struct report_server_status
 {
@@ -42,7 +45,7 @@ struct report_server_status
     uint64_t    max_price_per_kb;  // Maximum price paid per kb
     uint64_t    balance;           // Available Balance
 };
-BOOST_IDL_REFLECT( report_server_status, BOOST_PP_SEQ_NIL, 
+BOOST_REFLECT( report_server_status, BOOST_PP_SEQ_NIL, 
     (pay_btc_address)
     (min_price_per_kb)
     (avg_price_per_kb)
@@ -59,7 +62,7 @@ struct request_bitblock
    uint16_t      start_kb;
    uint16_t      num_kb;
 };
-BOOST_IDL_REFLECT( request_bitblock, BOOST_PP_SEQ_NIL, 
+BOOST_REFLECT( request_bitblock, BOOST_PP_SEQ_NIL, 
     (query_time)
     (btc_offer)
     (block_hash)
@@ -77,7 +80,7 @@ struct report_bitblock
    uint64_t          index_kb; 
    std::vector<char> data;
 };
-BOOST_IDL_REFLECT( report_bitblock, BOOST_PP_SEQ_NIL, 
+BOOST_REFLECT( report_bitblock, BOOST_PP_SEQ_NIL, 
     (query_time)
     (block_hash)
     (min_price_per_kb)
@@ -98,7 +101,7 @@ struct upload_bitblock
    uint32_t          block_size;
 };
 
-BOOST_IDL_REFLECT( upload_bitblock, BOOST_PP_SEQ_NIL, 
+BOOST_REFLECT( upload_bitblock, BOOST_PP_SEQ_NIL, 
     (btc_offer)
     (block_hash)
     (block_size)
@@ -137,7 +140,7 @@ struct message
     }
 };
 
-BOOST_IDL_REFLECT( message, BOOST_PP_SEQ_NIL, (id)(data) )
+BOOST_REFLECT( message, BOOST_PP_SEQ_NIL, (id)(data) )
 
 
 #endif
