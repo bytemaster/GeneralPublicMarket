@@ -1,4 +1,5 @@
-set( server_sources server.cpp )
+set( node_sources main.cpp node.cpp )
+set( server_sources server.cpp node.cpp )
 set( client_sources client.cpp )
 
 SET( libraries
@@ -12,8 +13,13 @@ SET( libraries
     ${QT_LIBRARIES}
 )
 
-add_executable( bbserver ${server_sources} )
-target_link_libraries( bbserver ${libraries} )
+add_executable( node ${node_sources} )
+target_link_libraries( node ${libraries} )
 
-add_executable( bbclient ${client_sources} )
-target_link_libraries( bbclient ${libraries} )
+
+#add_executable( bbserver ${server_sources} )
+#target_link_libraries( bbserver ${libraries} )
+
+#add_executable( bbclient ${client_sources} )
+#target_link_libraries( bbclient ${libraries} )
+
