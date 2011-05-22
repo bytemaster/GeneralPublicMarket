@@ -4,3 +4,6 @@
 [submodule "libs/boost/rpc"]
 	path = libs/boost/rpc
 	url = git@github.com:bytemaster/Boost.RPC.git
+[submodule "libs/bitcoin"]
+	path = libs/bitcoin
+	url = git@github.com:bytemaster/cpp_bitcoin_rpc.git
